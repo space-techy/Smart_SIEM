@@ -1,6 +1,6 @@
 """
 FastAPI backend to receive Wazuh alerts via custom integration hook.
-Prints incoming JSON and returns 200 OK.
+Persists alerts to MongoDB and returns 200 OK.
 """
 import json
 import os
@@ -9,12 +9,14 @@ from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+
+from db import ensure_indexes, insert_alert, close_client
 
 # Configuration from environment
 BACKEND_KEY = os.getenv("BACKEND_KEY", "devkey")
 PORT = int(os.getenv("PORT", "8081"))
 HOST = os.getenv("HOST", "0.0.0.0")
+PRINT_FULL_JSON = os.getenv("PRINT_FULL_JSON", "false").lower() == "true"
 
 app = FastAPI(title="Wazuh Alert Receiver", version="1.0.0")
 
@@ -57,28 +59,32 @@ def extract_field(data: Dict[str, Any], *paths: str) -> Any:
 
 def format_console_line(alert_data: Dict[str, Any]) -> str:
     """Format a concise single-line summary of the alert."""
-    # Extract timestamp
-    ts = extract_field(alert_data, "_source.timestamp", "@timestamp")
+    # Extract timestamp (raw Wazuh alert format, not Kibana _source wrapper)
+    ts = extract_field(alert_data, "timestamp", "@timestamp", "_source.timestamp")
     if not ts:
         ts = datetime.utcnow().isoformat() + "Z"
     
     # Extract agent info
     agent = extract_field(
         alert_data, 
-        "_source.agent.name", 
+        "agent.name", 
+        "agent.id",
+        "_source.agent.name",
         "_source.agent.id"
     )
     if not agent:
         agent = "-"
     
     # Extract rule level
-    rule_level = extract_field(alert_data, "_source.rule.level")
+    rule_level = extract_field(alert_data, "rule.level", "_source.rule.level")
     if rule_level is None:
         rule_level = "-"
     
     # Extract description
     desc = extract_field(
         alert_data,
+        "rule.description",
+        "full_log",
         "_source.rule.description",
         "_source.full_log"
     )
@@ -91,10 +97,26 @@ def format_console_line(alert_data: Dict[str, Any]) -> str:
     return f'[WAZUH] ts={ts} agent={agent} level={rule_level} desc="{desc_str}"'
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database indexes on startup."""
+    print("[APP] Starting Wazuh Alert Receiver...")
+    await ensure_indexes()
+    print("[APP] Ready to receive alerts")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection on shutdown."""
+    print("[APP] Shutting down...")
+    await close_client()
+
+
 @app.get("/")
 def home():
     """Home endpoint."""
     return {"message": "Welcome to the Wazuh Alert Receiver"}
+
 
 @app.get("/health")
 async def health_check():
@@ -107,6 +129,7 @@ async def receive_event(request: Request, authorization: str | None = Header(Non
     """
     Receive Wazuh alert events.
     Requires Bearer token authentication.
+    Persists to MongoDB with idempotency.
     """
     # Verify authorization
     verify_token(authorization)
@@ -117,13 +140,28 @@ async def receive_event(request: Request, authorization: str | None = Header(Non
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
     
-    # Print concise console line
+    # Print concise console line (before DB insert to show original data)
     console_line = format_console_line(alert_data)
     print(console_line)
     
-    # Print full JSON (pretty)
-    print(json.dumps(alert_data, indent=2))
-    print()  # Empty line for readability
+    # Optional: Print full JSON (controlled by env var)
+    if PRINT_FULL_JSON:
+        print(json.dumps(alert_data, indent=2))
+        print()
+    
+    # Persist to MongoDB
+    # Note: We pass a copy to preserve original for potential retry logic
+    alert_copy = alert_data.copy()
+    success, message = await insert_alert(alert_copy)
+    
+    if not success:
+        print(f"[ERROR] {message}")
+        raise HTTPException(status_code=502, detail="Database error")
+    
+    # Log success (minimal)
+    if "Inserted" in message:
+        print(f"[OK] {message}")
+    # Don't log duplicates to avoid noise
     
     return {"status": "ok"}
 

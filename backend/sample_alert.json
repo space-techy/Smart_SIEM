@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-10-11T13:29:01.520+0000",
+  "rule": {
+    "level": 5,
+    "description": "PAM: User login failed.",
+    "id": "5503",
+    "mitre": {
+      "id": ["T1110.001"],
+      "tactic": ["Credential Access"],
+      "technique": ["Password Guessing"]
+    },
+    "firedtimes": 1,
+    "mail": false,
+    "groups": ["pam", "syslog", "authentication_failed"],
+    "pci_dss": ["10.2.4", "10.2.5"],
+    "gpg13": ["7.8"],
+    "gdpr": ["IV_35.7.d", "IV_32.2"],
+    "hipaa": ["164.312.b"],
+    "nist_800_53": ["AU.14", "AC.7"],
+    "tsc": ["CC6.1", "CC6.8", "CC7.2", "CC7.3"]
+  },
+  "agent": {
+    "id": "001",
+    "name": "localagentvm",
+    "ip": "10.0.2.15"
+  },
+  "manager": {
+    "name": "wazhumanagervm"
+  },
+  "id": "1760189341.394888",
+  "full_log": "Oct 11 13:28:57 nikpat-VirtualBox sudo[6005]: pam_unix(sudo:auth): authentication failure; logname=nikpat uid=1000 euid=0 tty=/dev/pts/0 ruser=nikpat rhost=  user=nikpat",
+  "predecoder": {
+    "program_name": "sudo",
+    "timestamp": "Oct 11 13:28:57",
+    "hostname": "nikpat-VirtualBox"
+  },
+  "decoder": {
+    "name": "pam"
+  },
+  "data": {
+    "srcuser": "nikpat",
+    "dstuser": "nikpat",
+    "logname": "nikpat",
+    "uid": "1000",
+    "euid": "0",
+    "tty": "/dev/pts/0"
+  },
+  "location": "journald"
+}
+
