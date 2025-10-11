@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, CheckCircle, XCircle, Clock, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { toast } from 'sonner@2.0.3';
 import { Alert } from '../types';
-import { mockAlerts } from '../data/mockData';
+import { api } from '../services/api';
 
 const getSeverityColor = (severity: string) => {
   switch (severity) {
@@ -27,7 +27,38 @@ const getSeverityIcon = (severity: string) => {
 };
 
 export function Alerts() {
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch alerts from backend
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getAlerts(100);
+      // Transform Wazuh alerts to Alert format
+      const transformed = data
+        .filter((alert: any) => alert.rule?.level >= 5) // Only show level 5+ as alerts
+        .map((alert: any) => ({
+          id: alert._id || alert.id,
+          severity: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 5 ? 'Moderate' : 'Low',
+          title: alert.rule?.description || 'Security Alert',
+          description: `${alert.agent?.name || 'Unknown'}: ${alert.full_log?.substring(0, 100) || 'No details'}`,
+          timestamp: alert.timestamp || alert.timestamp_raw || new Date().toISOString(),
+          logId: alert._id,
+          acknowledged: false,
+          _original: alert
+        }));
+      setAlerts(transformed);
+    } catch (error) {
+      console.error('Failed to load alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAcknowledge = (alertId: string) => {
     setAlerts(prevAlerts =>
@@ -66,6 +97,10 @@ export function Alerts() {
           <Badge variant="outline" className="text-lg px-4 py-2 font-medium">
             {alertCounts.Total} Active Alerts
           </Badge>
+          <Button onClick={loadAlerts} disabled={loading} variant="outline">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
         </div>
       </div>
 
@@ -122,7 +157,12 @@ export function Alerts() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {activeAlerts.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading alerts from database...</span>
+            </div>
+          ) : activeAlerts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="w-16 h-16 mx-auto mb-6 text-green-500" />
               <h3 className="text-lg font-medium mb-2">No active alerts!</h3>

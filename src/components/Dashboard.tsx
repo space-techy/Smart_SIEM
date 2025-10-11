@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Filter, Eye, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Filter, Eye, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -8,7 +8,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { LogEntry } from '../types';
-import { mockLogs } from '../data/mockData';
+import { api } from '../services/api';
 
 const getThreatLevelColor = (level: string) => {
   switch (level) {
@@ -29,11 +29,44 @@ const getThreatLevelIcon = (level: string) => {
 };
 
 export function Dashboard() {
-  const [logs, setLogs] = useState<LogEntry[]>(mockLogs);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
   const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
-  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+
+  // Fetch alerts from backend
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    try {
+      const alerts = await api.getAlerts(100);
+      // Transform Wazuh alerts to frontend format
+      const transformed = alerts.map((alert: any) => ({
+        id: alert._id || alert.id,
+        timestamp: alert.timestamp || alert.timestamp_raw || new Date().toISOString(),
+        sourceIp: alert.agent?.ip || alert.data?.srcip || '-',
+        hostname: alert.agent?.name || alert.predecoder?.hostname || '-',
+        logType: alert.decoder?.name || alert.location || 'Unknown',
+        threatLevel: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 4 ? 'Moderate' : 'Low',
+        description: alert.rule?.description || alert.full_log?.substring(0, 100) || 'No description',
+        rawLog: alert.full_log || JSON.stringify(alert, null, 2),
+        classification: undefined,
+        isCorrect: undefined,
+        // Keep original alert data
+        _original: alert
+      }));
+      setLogs(transformed);
+    } catch (error) {
+      console.error('Failed to load alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -70,6 +103,10 @@ export function Dashboard() {
           <h1>Security Dashboard</h1>
           <p className="text-muted-foreground mt-2">Monitor and analyze security logs with ML-powered threat detection</p>
         </div>
+        <Button onClick={loadAlerts} disabled={loading} variant="outline">
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Loading...' : 'Refresh'}
+        </Button>
       </div>
 
       {/* Threat Level Summary */}
@@ -156,6 +193,18 @@ export function Dashboard() {
           <CardTitle>Security Logs ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading alerts from database...</span>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+              <h3 className="text-lg font-medium mb-2">No alerts found</h3>
+              <p>Send some alerts to the backend to see them here.</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -295,8 +344,9 @@ export function Dashboard() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

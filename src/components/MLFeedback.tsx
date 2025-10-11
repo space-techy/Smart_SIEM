@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, RotateCcw, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, RotateCcw, Save, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner@2.0.3';
 import { LogEntry, MLFeedback } from '../types';
-import { mockLogs } from '../data/mockData';
+import { api } from '../services/api';
 
 const getThreatLevelColor = (level: string) => {
   switch (level) {
@@ -18,9 +18,41 @@ const getThreatLevelColor = (level: string) => {
 };
 
 export function MLFeedback() {
-  const [logs, setLogs] = useState<LogEntry[]>(mockLogs);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<MLFeedback[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Fetch alerts from backend
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    try {
+      const alerts = await api.getAlerts(100);
+      // Transform to log entry format
+      const transformed = alerts.map((alert: any) => ({
+        id: alert._id || alert.id,
+        timestamp: alert.timestamp || alert.timestamp_raw || new Date().toISOString(),
+        sourceIp: alert.agent?.ip || alert.data?.srcip || '-',
+        hostname: alert.agent?.name || alert.predecoder?.hostname || '-',
+        logType: alert.decoder?.name || alert.location || 'Unknown',
+        threatLevel: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 4 ? 'Moderate' : 'Low',
+        description: alert.rule?.description || alert.full_log?.substring(0, 100) || 'No description',
+        rawLog: alert.full_log || JSON.stringify(alert, null, 2),
+        classification: undefined,
+        isCorrect: undefined,
+        _original: alert
+      }));
+      setLogs(transformed);
+    } catch (error) {
+      console.error('Failed to load alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get logs that need correction (misclassified or unclassified)
   const logsNeedingCorrection = logs.filter(log => 
@@ -85,6 +117,10 @@ export function MLFeedback() {
           <p className="text-muted-foreground mt-2">Review and correct ML model classifications to improve accuracy</p>
         </div>
         <div className="flex gap-3">
+          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="h-10 px-5">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
           {hasUnsavedChanges && (
             <>
               <Button variant="outline" onClick={handleResetFeedback} className="h-10 px-5">
@@ -163,7 +199,12 @@ export function MLFeedback() {
           <CardTitle>Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {logsNeedingCorrection.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading alerts from database...</span>
+            </div>
+          ) : logsNeedingCorrection.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="w-16 h-16 mx-auto mb-6 text-green-500" />
               <h3 className="text-lg font-medium mb-2">All logs have been properly classified!</h3>

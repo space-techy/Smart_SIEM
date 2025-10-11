@@ -124,6 +124,58 @@ async def health_check():
     return {"ok": True}
 
 
+@app.get("/api/alerts")
+async def get_alerts(limit: int = 100, skip: int = 0):
+    """
+    Get alerts from MongoDB.
+    Returns alerts in a format suitable for the frontend.
+    """
+    from db import get_collection
+    
+    try:
+        collection = get_collection()
+        
+        # Get alerts sorted by timestamp (newest first)
+        cursor = collection.find().sort("timestamp", -1).skip(skip).limit(limit)
+        alerts = await cursor.to_list(length=limit)
+        
+        # Transform MongoDB alerts to frontend format
+        transformed_alerts = []
+        for alert in alerts:
+            # Convert ObjectId to string for JSON serialization
+            alert["_id"] = str(alert["_id"])
+            transformed_alerts.append(alert)
+        
+        return {
+            "status": "ok",
+            "count": len(transformed_alerts),
+            "alerts": transformed_alerts
+        }
+    
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch alerts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch alerts: {str(e)}")
+
+
+@app.get("/api/alerts/count")
+async def get_alerts_count():
+    """Get total count of alerts in database."""
+    from db import get_collection
+    
+    try:
+        collection = get_collection()
+        count = await collection.count_documents({})
+        
+        return {
+            "status": "ok",
+            "count": count
+        }
+    
+    except Exception as e:
+        print(f"[ERROR] Failed to count alerts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to count alerts: {str(e)}")
+
+
 @app.post("/events")
 async def receive_event(request: Request, authorization: str | None = Header(None)):
     """
