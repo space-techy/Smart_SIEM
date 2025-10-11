@@ -156,3 +156,5 @@ Thumbs.db
 .env
 .env.*.local
 .vscode/
+.venv/
+__pycache__/
