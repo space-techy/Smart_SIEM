@@ -55,7 +55,8 @@ export function Dashboard() {
         threatLevel: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 4 ? 'Moderate' : 'Low',
         description: alert.rule?.description || alert.full_log?.substring(0, 100) || 'No description',
         rawLog: alert.full_log || JSON.stringify(alert, null, 2),
-        classification: undefined,
+        // Map label from backend to classification
+        classification: alert.label === 'malicious' ? 'Malicious' : alert.label === 'safe' ? 'Non-Malicious' : undefined,
         isCorrect: undefined,
         // Keep original alert data
         _original: alert
@@ -80,12 +81,38 @@ export function Dashboard() {
     });
   }, [logs, searchTerm, threatFilter, logTypeFilter]);
 
-  const handleClassification = (logId: string, classification: 'Malicious' | 'Non-Malicious') => {
-    setLogs(prevLogs =>
-      prevLogs.map(log =>
-        log.id === logId ? { ...log, classification } : log
-      )
-    );
+  const handleClassification = async (logId: string, classification: 'Malicious' | 'Non-Malicious') => {
+    const label = classification === 'Malicious' ? 'malicious' : 'safe';
+    
+    try {
+      // Update UI immediately for better UX
+      setLogs(prevLogs =>
+        prevLogs.map(log =>
+          log.id === logId ? { ...log, classification, classifying: true } : log
+        )
+      );
+      
+      // Send to backend
+      await api.classifyAlert(logId, label);
+      
+      // Update with success
+      setLogs(prevLogs =>
+        prevLogs.map(log =>
+          log.id === logId ? { ...log, classification, classifying: false } : log
+        )
+      );
+      
+      console.log(`Alert ${logId} classified as ${label}`);
+    } catch (error) {
+      console.error('Classification failed:', error);
+      // Revert on error
+      setLogs(prevLogs =>
+        prevLogs.map(log =>
+          log.id === logId ? { ...log, classification: undefined, classifying: false } : log
+        )
+      );
+      alert('Failed to classify alert. Please try again.');
+    }
   };
 
   const logTypes = [...new Set(logs.map(log => log.logType))];
@@ -248,9 +275,38 @@ export function Dashboard() {
                     </TableCell>
                     <TableCell className="py-4">
                       {log.classification ? (
-                        <Badge variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'} className="px-3 py-1">
-                          {log.classification}
-                        </Badge>
+                        <div className="flex flex-col gap-2 min-w-[160px]">
+                          <Badge 
+                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'} 
+                            className="px-3 py-2 justify-center"
+                          >
+                            {log.classification === 'Malicious' ? (
+                              <><XCircle className="w-3 h-3 mr-1" /> Marked as Malicious</>
+                            ) : (
+                              <><CheckCircle className="w-3 h-3 mr-1" /> Marked as Safe</>
+                            )}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={
+                              log.classification === 'Malicious' 
+                                ? "text-green-600 border-green-200 hover:bg-green-50 h-8"
+                                : "text-red-600 border-red-200 hover:bg-red-50 h-8"
+                            }
+                            onClick={() => handleClassification(
+                              log.id, 
+                              log.classification === 'Malicious' ? 'Non-Malicious' : 'Malicious'
+                            )}
+                            disabled={log.classifying}
+                          >
+                            {log.classification === 'Malicious' ? (
+                              <><CheckCircle className="w-3 h-3 mr-2" /> Mark as Safe</>
+                            ) : (
+                              <><XCircle className="w-3 h-3 mr-2" /> Mark as Malicious</>
+                            )}
+                          </Button>
+                        </div>
                       ) : (
                         <div className="flex flex-col gap-2 min-w-[160px]">
                           <Button
@@ -258,6 +314,7 @@ export function Dashboard() {
                             variant="outline"
                             className="text-red-600 border-red-200 hover:bg-red-50 h-8"
                             onClick={() => handleClassification(log.id, 'Malicious')}
+                            disabled={log.classifying}
                           >
                             <XCircle className="w-3 h-3 mr-2" />
                             Malicious
@@ -267,6 +324,7 @@ export function Dashboard() {
                             variant="outline"
                             className="text-green-600 border-green-200 hover:bg-green-50 h-8"
                             onClick={() => handleClassification(log.id, 'Non-Malicious')}
+                            disabled={log.classifying}
                           >
                             <CheckCircle className="w-3 h-3 mr-2" />
                             Safe

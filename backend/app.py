@@ -176,6 +176,115 @@ async def get_alerts_count():
         raise HTTPException(status_code=500, detail=f"Failed to count alerts: {str(e)}")
 
 
+@app.post("/classify")
+async def classify_alert(request: Request, authorization: str | None = Header(None)):
+    """
+    Classify an alert as malicious or safe.
+    Moves alert to appropriate collection and updates label.
+    """
+    # Verify authorization
+    verify_token(authorization)
+    
+    from db import get_collection
+    from datetime import datetime, timezone
+    
+    try:
+        body = await request.json()
+        alert_id = body.get("_id")
+        label = body.get("label")
+        
+        if not alert_id:
+            raise HTTPException(status_code=400, detail="Missing _id field")
+        
+        if label not in ["malicious", "safe"]:
+            raise HTTPException(status_code=400, detail="label must be 'malicious' or 'safe'")
+        
+        # Get collections
+        alerts_collection = get_collection("alerts")
+        malicious_collection = get_collection("malicious")
+        safe_collection = get_collection("safe")
+        
+        # Find the alert
+        alert = await alerts_collection.find_one({"_id": alert_id})
+        
+        if not alert:
+            raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+        
+        # Add classification metadata
+        alert["label"] = label
+        alert["labeled_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        
+        # Insert into appropriate collection (idempotent)
+        target_collection = malicious_collection if label == "malicious" else safe_collection
+        opposite_collection = safe_collection if label == "malicious" else malicious_collection
+        
+        # Remove from opposite collection if it exists
+        await opposite_collection.delete_one({"_id": alert_id})
+        
+        # Insert/update in target collection
+        await target_collection.replace_one(
+            {"_id": alert_id},
+            alert,
+            upsert=True
+        )
+        
+        # Update the original alert in alerts collection
+        await alerts_collection.update_one(
+            {"_id": alert_id},
+            {
+                "$set": {
+                    "label": label,
+                    "labeled_at": alert["labeled_at"]
+                }
+            }
+        )
+        
+        print(f"[CLASSIFY] Alert {alert_id} classified as {label}")
+        
+        return {
+            "ok": True,
+            "alertId": alert_id,
+            "label": label
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Classification failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Classification failed: {str(e)}")
+
+
+@app.get("/classify/{alert_id}")
+async def get_classification(alert_id: str, authorization: str | None = Header(None)):
+    """
+    Get classification label for an alert.
+    """
+    # Verify authorization
+    verify_token(authorization)
+    
+    from db import get_collection
+    
+    try:
+        alerts_collection = get_collection("alerts")
+        alert = await alerts_collection.find_one({"_id": alert_id})
+        
+        if not alert:
+            raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+        
+        return {
+            "ok": True,
+            "alertId": alert_id,
+            "label": alert.get("label"),
+            "labeled_at": alert.get("labeled_at")
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Failed to get classification: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get classification: {str(e)}")
+
+
 @app.post("/events")
 async def receive_event(request: Request, authorization: str | None = Header(None)):
     """

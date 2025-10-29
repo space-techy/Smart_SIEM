@@ -50,6 +50,8 @@ export function Alerts() {
           timestamp: alert.timestamp || alert.timestamp_raw || new Date().toISOString(),
           logId: alert._id,
           acknowledged: false,
+          // Map label from backend
+          classification: alert.label === 'malicious' ? 'Malicious' : alert.label === 'safe' ? 'Non-Malicious' : undefined,
           _original: alert
         }));
       setAlerts(transformed);

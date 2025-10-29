@@ -1,5 +1,6 @@
 // API service for backend communication
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+const API_KEY = 'devkey'; // TODO: Move to env variable
 
 export const api = {
   // Get all alerts from MongoDB
@@ -29,6 +30,55 @@ export const api = {
     } catch (error) {
       console.error('Failed to fetch alert count:', error);
       return 0;
+    }
+  },
+
+  // Classify an alert as malicious or safe
+  async classifyAlert(alertId: string, label: 'malicious' | 'safe') {
+    try {
+      const response = await fetch(`${API_BASE_URL}/classify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          _id: alertId,
+          label: label
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to classify alert:', error);
+      throw error;
+    }
+  },
+
+  // Get classification for an alert
+  async getClassification(alertId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/classify/${alertId}`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to get classification:', error);
+      return null;
     }
   },
 

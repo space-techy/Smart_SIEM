@@ -42,8 +42,9 @@ export function MLFeedback() {
         threatLevel: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 4 ? 'Moderate' : 'Low',
         description: alert.rule?.description || alert.full_log?.substring(0, 100) || 'No description',
         rawLog: alert.full_log || JSON.stringify(alert, null, 2),
-        classification: undefined,
-        isCorrect: undefined,
+        // Map label from backend to classification
+        classification: alert.label === 'malicious' ? 'Malicious' : alert.label === 'safe' ? 'Non-Malicious' : undefined,
+        isCorrect: alert.label ? true : undefined,
         _original: alert
       }));
       setLogs(transformed);
@@ -59,36 +60,63 @@ export function MLFeedback() {
     !log.classification || log.isCorrect === false
   );
 
-  const handleCorrection = (logId: string, correction: 'Malicious' | 'Non-Malicious') => {
+  const handleCorrection = async (logId: string, correction: 'Malicious' | 'Non-Malicious') => {
     const log = logs.find(l => l.id === logId);
     if (!log) return;
+    
+    const label = correction === 'Malicious' ? 'malicious' : 'safe';
 
-    setLogs(prevLogs =>
-      prevLogs.map(l =>
-        l.id === logId ? { ...l, classification: correction, isCorrect: true } : l
-      )
-    );
+    try {
+      // Update UI immediately
+      setLogs(prevLogs =>
+        prevLogs.map(l =>
+          l.id === logId ? { ...l, classification: correction, isCorrect: true, classifying: true } : l
+        )
+      );
 
-    setFeedback(prevFeedback => {
-      const existingIndex = prevFeedback.findIndex(f => f.logId === logId);
-      const newFeedback: MLFeedback = {
-        logId,
-        originalClassification: log.threatLevel,
-        correctedClassification: correction,
-        analystId: 'analyst-1',
-        timestamp: new Date().toISOString()
-      };
+      // Send to backend
+      await api.classifyAlert(logId, label);
 
-      if (existingIndex >= 0) {
-        const updated = [...prevFeedback];
-        updated[existingIndex] = newFeedback;
-        return updated;
-      } else {
-        return [...prevFeedback, newFeedback];
-      }
-    });
+      // Update feedback
+      setFeedback(prevFeedback => {
+        const existingIndex = prevFeedback.findIndex(f => f.logId === logId);
+        const newFeedback: MLFeedback = {
+          logId,
+          originalClassification: log.threatLevel,
+          correctedClassification: correction,
+          analystId: 'analyst-1',
+          timestamp: new Date().toISOString()
+        };
 
-    setHasUnsavedChanges(true);
+        if (existingIndex >= 0) {
+          const updated = [...prevFeedback];
+          updated[existingIndex] = newFeedback;
+          return updated;
+        } else {
+          return [...prevFeedback, newFeedback];
+        }
+      });
+
+      setHasUnsavedChanges(true);
+      
+      // Update with success
+      setLogs(prevLogs =>
+        prevLogs.map(l =>
+          l.id === logId ? { ...l, classifying: false } : l
+        )
+      );
+      
+      console.log(`Alert ${logId} classified as ${label}`);
+    } catch (error) {
+      console.error('Classification failed:', error);
+      // Revert on error
+      setLogs(prevLogs =>
+        prevLogs.map(l =>
+          l.id === logId ? { ...l, classification: undefined, isCorrect: undefined, classifying: false } : l
+        )
+      );
+      alert('Failed to classify alert. Please try again.');
+    }
   };
 
   const handleSaveFeedback = () => {
@@ -245,34 +273,78 @@ export function MLFeedback() {
                       </TableCell>
                       <TableCell className="py-4">
                         {log.classification ? (
-                          <Badge variant={log.isCorrect === false ? 'destructive' : 'secondary'} className="px-3 py-1">
-                            {log.classification} {log.isCorrect === false && '(Incorrect)'}
+                          <Badge 
+                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'} 
+                            className="px-3 py-1"
+                          >
+                            {log.classification === 'Malicious' ? (
+                              <><XCircle className="w-3 h-3 mr-1" /> Malicious</>
+                            ) : (
+                              <><CheckCircle className="w-3 h-3 mr-1" /> Safe</>
+                            )}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="px-3 py-1">Unclassified</Badge>
                         )}
                       </TableCell>
                       <TableCell className="py-4">
-                        <div className="flex flex-col gap-2 min-w-[160px]">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50 h-8"
-                            onClick={() => handleCorrection(log.id, 'Malicious')}
-                          >
-                            <XCircle className="w-3 h-3 mr-2" />
-                            Malicious
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-200 hover:bg-green-50 h-8"
-                            onClick={() => handleCorrection(log.id, 'Non-Malicious')}
-                          >
-                            <CheckCircle className="w-3 h-3 mr-2" />
-                            Safe
-                          </Button>
-                        </div>
+                        {log.classification ? (
+                          <div className="flex flex-col gap-2 min-w-[160px]">
+                            <Badge 
+                              variant="secondary" 
+                              className="px-3 py-2 justify-center"
+                            >
+                              {log.classification === 'Malicious' ? (
+                                <><XCircle className="w-3 h-3 mr-1" /> Marked as Malicious</>
+                              ) : (
+                                <><CheckCircle className="w-3 h-3 mr-1" /> Marked as Safe</>
+                              )}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={
+                                log.classification === 'Malicious' 
+                                  ? "text-green-600 border-green-200 hover:bg-green-50 h-8"
+                                  : "text-red-600 border-red-200 hover:bg-red-50 h-8"
+                              }
+                              onClick={() => handleCorrection(
+                                log.id, 
+                                log.classification === 'Malicious' ? 'Non-Malicious' : 'Malicious'
+                              )}
+                              disabled={log.classifying}
+                            >
+                              {log.classification === 'Malicious' ? (
+                                <><CheckCircle className="w-3 h-3 mr-2" /> Change to Safe</>
+                              ) : (
+                                <><XCircle className="w-3 h-3 mr-2" /> Change to Malicious</>
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2 min-w-[160px]">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 border-red-200 hover:bg-red-50 h-8"
+                              onClick={() => handleCorrection(log.id, 'Malicious')}
+                              disabled={log.classifying}
+                            >
+                              <XCircle className="w-3 h-3 mr-2" />
+                              Malicious
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-600 border-green-200 hover:bg-green-50 h-8"
+                              onClick={() => handleCorrection(log.id, 'Non-Malicious')}
+                              disabled={log.classifying}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-2" />
+                              Safe
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

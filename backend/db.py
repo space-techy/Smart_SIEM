@@ -42,10 +42,10 @@ def get_client() -> AsyncIOMotorClient:
     return _client
 
 
-def get_collection() -> AsyncIOMotorCollection:
-    """Get the alerts collection."""
+def get_collection(collection_name: str = COLLECTION_NAME) -> AsyncIOMotorCollection:
+    """Get a collection from the database."""
     client = get_client()
-    return client[DB_NAME][COLLECTION_NAME]
+    return client[DB_NAME][collection_name]
 
 
 async def ensure_indexes() -> None:
