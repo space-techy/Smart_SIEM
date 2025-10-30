@@ -109,17 +109,17 @@ export function Settings() {
   };
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Settings</h1>
-          <p className="text-muted-foreground mt-2 text-base">Configure ML model parameters and user permissions</p>
+          <h1>Settings</h1>
+          <p className="text-muted-foreground mt-2">Configure ML model parameters and user permissions</p>
         </div>
         {hasUnsavedChanges && (
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-orange-100/50 border-2 border-orange-300 rounded-xl shadow-lg">
-            <AlertCircle className="w-5 h-5 text-orange-600" />
-            <span className="text-orange-800 font-semibold">Unsaved changes</span>
-            <Button onClick={handleSaveSettings} className="h-9 px-4 shadow-md bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg transition-all">
+          <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            <span className="text-orange-700 font-medium">Unsaved changes</span>
+            <Button onClick={handleSaveSettings} className="h-9 px-4">
               <Save className="w-4 h-4 mr-2" />
               Save Settings
             </Button>
@@ -128,28 +128,26 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="ml-model" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-muted/50 rounded-xl shadow-sm">
-          <TabsTrigger value="ml-model" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="ml-model" className="flex items-center gap-2 h-10 px-6">
             <Brain className="w-4 h-4" />
-            <span className="font-semibold">ML Model</span>
+            ML Model
           </TabsTrigger>
-          <TabsTrigger value="permissions" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="permissions" className="flex items-center gap-2 h-10 px-6">
             <Users className="w-4 h-4" />
-            <span className="font-semibold">User Permissions</span>
+            User Permissions
           </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="system" className="flex items-center gap-2 h-10 px-6">
             <SettingsIcon className="w-4 h-4" />
-            <span className="font-semibold">System</span>
+            System
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="ml-model" className="space-y-8">
-          <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-6 bg-gradient-to-r from-card to-accent/10">
-              <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Brain className="w-6 h-6 text-primary" />
-                </div>
+          <Card>
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <Brain className="w-6 h-6" />
                 Machine Learning Configuration
               </CardTitle>
             </CardHeader>
@@ -232,23 +230,23 @@ export function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Model Performance</h3>
+                <h3 className="text-lg font-medium">Model Performance</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/20 hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="text-3xl font-bold text-green-600 mb-1">94.2%</div>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-500">94.2%</div>
                       <p className="text-sm text-muted-foreground">Overall Accuracy</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-card to-blue-50/20 hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="text-3xl font-bold text-blue-600 mb-1">1,247</div>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-blue-500">1,247</div>
                       <p className="text-sm text-muted-foreground">Logs Processed Today</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/20 hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="text-3xl font-bold text-orange-600 mb-1">23</div>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-orange-500">23</div>
                       <p className="text-sm text-muted-foreground">Corrections This Week</p>
                     </CardContent>
                   </Card>
@@ -259,31 +257,29 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="permissions" className="space-y-6">
-          <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-card to-accent/10">
-              <CardTitle className="flex items-center gap-3 text-lg font-bold">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Users className="w-5 h-5 text-primary" />
-                </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
                 User Permissions Management
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-5 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
+                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground font-bold shadow-md">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                         {user.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <div className="font-semibold text-base">{user.name}</div>
+                        <div className="font-medium">{user.name}</div>
                         <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        <Badge className={`${getRoleColor(user.role)} px-3 py-1.5 font-semibold shadow-sm`}>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getRoleColor(user.role)}>
                           {user.role}
                         </Badge>
                         <Select
@@ -292,7 +288,7 @@ export function Settings() {
                             handleUserRoleChange(user.id, value)
                           }
                         >
-                          <SelectTrigger className="w-36 border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20">
+                          <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -343,12 +339,10 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
-          <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-card to-accent/10">
-              <CardTitle className="flex items-center gap-3 text-lg font-bold">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <SettingsIcon className="w-5 h-5 text-primary" />
-                </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SettingsIcon className="w-5 h-5" />
                 System Configuration
               </CardTitle>
             </CardHeader>
@@ -411,35 +405,35 @@ export function Settings() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">System Status</h3>
+                  <h3 className="text-lg font-medium mb-3">System Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
+                    <div className="flex items-center justify-between p-3 border rounded">
                       <div>
-                        <p className="font-semibold">Log Ingestion</p>
-                        <p className="text-sm text-green-600 font-medium">Active</p>
+                        <p className="font-medium">Log Ingestion</p>
+                        <p className="text-sm text-green-600">Active</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     </div>
-                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
+                    <div className="flex items-center justify-between p-3 border rounded">
                       <div>
-                        <p className="font-semibold">ML Model</p>
-                        <p className="text-sm text-green-600 font-medium">Running</p>
+                        <p className="font-medium">ML Model</p>
+                        <p className="text-sm text-green-600">Running</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     </div>
-                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
+                    <div className="flex items-center justify-between p-3 border rounded">
                       <div>
-                        <p className="font-semibold">Alert System</p>
-                        <p className="text-sm text-green-600 font-medium">Operational</p>
+                        <p className="font-medium">Alert System</p>
+                        <p className="text-sm text-green-600">Operational</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     </div>
-                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
+                    <div className="flex items-center justify-between p-3 border rounded">
                       <div>
-                        <p className="font-semibold">Database</p>
-                        <p className="text-sm text-green-600 font-medium">Connected</p>
+                        <p className="font-medium">Database</p>
+                        <p className="text-sm text-green-600">Connected</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     </div>
                   </div>
                 </div>

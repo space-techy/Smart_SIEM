@@ -110,24 +110,24 @@ export function MLFeedback() {
   const unclassifiedLogs = logs.filter(log => !log.classification).length;
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">ML Model Feedback</h1>
-          <p className="text-muted-foreground mt-2 text-base">Review and correct ML model classifications to improve accuracy</p>
+          <h1>ML Model Feedback</h1>
+          <p className="text-muted-foreground mt-2">Review and correct ML model classifications to improve accuracy</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="h-10 px-5 shadow-sm hover:shadow-md transition-shadow">
+          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="h-10 px-5">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Loading...' : 'Refresh'}
           </Button>
           {hasUnsavedChanges && (
             <>
-              <Button variant="outline" onClick={handleResetFeedback} className="h-10 px-5 shadow-sm hover:shadow-md transition-shadow">
+              <Button variant="outline" onClick={handleResetFeedback} className="h-10 px-5">
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
-              <Button onClick={handleSaveFeedback} className="h-10 px-5 shadow-lg bg-gradient-to-r from-primary to-primary/90 hover:shadow-xl transition-all">
+              <Button onClick={handleSaveFeedback} className="h-10 px-5">
                 <Save className="w-4 h-4 mr-2" />
                 Save Feedback ({feedback.length})
               </Button>
@@ -138,63 +138,52 @@ export function MLFeedback() {
 
       {/* Model Performance Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/30">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Correct Classifications</CardTitle>
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
+            <CardTitle className="text-base font-medium">Correct Classifications</CardTitle>
+            <CheckCircle className="w-5 h-5 text-green-500" />
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-4xl font-bold text-green-600 mb-1">{correctClassifications}</div>
-            <p className="text-sm text-muted-foreground">
+            <div className="text-3xl font-bold text-green-500">{correctClassifications}</div>
+            <p className="text-sm text-muted-foreground mt-1">
               {((correctClassifications / logs.length) * 100).toFixed(1)}% accuracy
             </p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-red-500 bg-gradient-to-br from-card to-red-50/30">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Incorrect Classifications</CardTitle>
-            <div className="p-2 bg-red-100 rounded-lg">
-              <XCircle className="w-5 h-5 text-red-600" />
-            </div>
+            <CardTitle className="text-base font-medium">Incorrect Classifications</CardTitle>
+            <XCircle className="w-5 h-5 text-red-500" />
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-4xl font-bold text-red-600 mb-1">{incorrectClassifications}</div>
-            <p className="text-sm text-muted-foreground">Need correction</p>
+            <div className="text-3xl font-bold text-red-500">{incorrectClassifications}</div>
+            <p className="text-sm text-muted-foreground mt-1">Need correction</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/30">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-semibold">Unclassified</CardTitle>
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <RotateCcw className="w-5 h-5 text-orange-600" />
-            </div>
+            <CardTitle className="text-base font-medium">Unclassified</CardTitle>
+            <RotateCcw className="w-5 h-5 text-orange-500" />
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-4xl font-bold text-orange-600 mb-1">{unclassifiedLogs}</div>
-            <p className="text-sm text-muted-foreground">Awaiting classification</p>
+            <div className="text-3xl font-bold text-orange-500">{unclassifiedLogs}</div>
+            <p className="text-sm text-muted-foreground mt-1">Awaiting classification</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Feedback Queue */}
       {hasUnsavedChanges && (
-        <Card className="border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100/50 shadow-lg">
-          <CardHeader className="pb-4 bg-gradient-to-r from-orange-100/50 to-orange-50">
-            <CardTitle className="text-orange-900 text-lg font-bold flex items-center gap-2">
-              <div className="p-2 bg-orange-200 rounded-lg">
-                <Save className="w-5 h-5 text-orange-700" />
-              </div>
-              Pending Feedback
-            </CardTitle>
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-orange-800 text-lg">Pending Feedback</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {feedback.map((f, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-orange-200 shadow-sm hover:shadow-md transition-all">
-                  <span className="font-semibold text-foreground">Log {f.logId}: {f.originalClassification} → {f.correctedClassification}</span>
-                  <Badge className="bg-orange-100 text-orange-700 border-2 border-orange-300 px-3 py-1.5 font-semibold shadow-sm">
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border border-orange-200">
+                  <span className="font-medium">Log {f.logId}: {f.originalClassification} → {f.correctedClassification}</span>
+                  <Badge variant="outline" className="text-orange-700 border-orange-300 px-3 py-1">
                     Pending
                   </Badge>
                 </div>
@@ -205,9 +194,9 @@ export function MLFeedback() {
       )}
 
       {/* Logs Needing Correction */}
-      <Card className="shadow-sm hover:shadow-md transition-shadow">
-        <CardHeader className="pb-4 bg-gradient-to-r from-card to-accent/10">
-          <CardTitle className="text-lg font-semibold">Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -295,32 +284,32 @@ export function MLFeedback() {
       </Card>
 
       {/* Training History */}
-      <Card className="shadow-sm hover:shadow-md transition-shadow">
-        <CardHeader className="bg-gradient-to-r from-card to-accent/10">
-          <CardTitle className="text-lg font-semibold">Recent Training Sessions</CardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Training Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
+            <div className="flex items-center justify-between p-3 border rounded">
               <div>
-                <p className="font-semibold">Model retrain #47</p>
+                <p className="font-medium">Model retrain #47</p>
                 <p className="text-sm text-muted-foreground">15 corrections applied • 2024-01-15 10:30</p>
               </div>
-              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
+              <Badge variant="secondary">Completed</Badge>
             </div>
-            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
+            <div className="flex items-center justify-between p-3 border rounded">
               <div>
-                <p className="font-semibold">Model retrain #46</p>
+                <p className="font-medium">Model retrain #46</p>
                 <p className="text-sm text-muted-foreground">23 corrections applied • 2024-01-14 16:45</p>
               </div>
-              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
+              <Badge variant="secondary">Completed</Badge>
             </div>
-            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
+            <div className="flex items-center justify-between p-3 border rounded">
               <div>
-                <p className="font-semibold">Model retrain #45</p>
+                <p className="font-medium">Model retrain #45</p>
                 <p className="text-sm text-muted-foreground">8 corrections applied • 2024-01-14 09:15</p>
               </div>
-              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
+              <Badge variant="secondary">Completed</Badge>
             </div>
           </div>
         </CardContent>
