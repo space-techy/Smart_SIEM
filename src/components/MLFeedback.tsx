@@ -110,24 +110,24 @@ export function MLFeedback() {
   const unclassifiedLogs = logs.filter(log => !log.classification).length;
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-start justify-between">
         <div>
-          <h1>ML Model Feedback</h1>
-          <p className="text-muted-foreground mt-2">Review and correct ML model classifications to improve accuracy</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">ML Model Feedback</h1>
+          <p className="text-muted-foreground mt-2 text-base">Review and correct ML model classifications to improve accuracy</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="h-10 px-5">
+          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="h-10 px-5 shadow-sm hover:shadow-md transition-shadow">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Loading...' : 'Refresh'}
           </Button>
           {hasUnsavedChanges && (
             <>
-              <Button variant="outline" onClick={handleResetFeedback} className="h-10 px-5">
+              <Button variant="outline" onClick={handleResetFeedback} className="h-10 px-5 shadow-sm hover:shadow-md transition-shadow">
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
-              <Button onClick={handleSaveFeedback} className="h-10 px-5">
+              <Button onClick={handleSaveFeedback} className="h-10 px-5 shadow-lg bg-gradient-to-r from-primary to-primary/90 hover:shadow-xl transition-all">
                 <Save className="w-4 h-4 mr-2" />
                 Save Feedback ({feedback.length})
               </Button>
@@ -138,36 +138,42 @@ export function MLFeedback() {
 
       {/* Model Performance Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Correct Classifications</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <CardTitle className="text-base font-semibold">Correct Classifications</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{correctClassifications}</div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="text-4xl font-bold text-green-600 mb-1">{correctClassifications}</div>
+            <p className="text-sm text-muted-foreground">
               {((correctClassifications / logs.length) * 100).toFixed(1)}% accuracy
             </p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-red-500 bg-gradient-to-br from-card to-red-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Incorrect Classifications</CardTitle>
-            <XCircle className="w-5 h-5 text-red-500" />
+            <CardTitle className="text-base font-semibold">Incorrect Classifications</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
+              <XCircle className="w-5 h-5 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{incorrectClassifications}</div>
-            <p className="text-sm text-muted-foreground mt-1">Need correction</p>
+            <div className="text-4xl font-bold text-red-600 mb-1">{incorrectClassifications}</div>
+            <p className="text-sm text-muted-foreground">Need correction</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Unclassified</CardTitle>
-            <RotateCcw className="w-5 h-5 text-orange-500" />
+            <CardTitle className="text-base font-semibold">Unclassified</CardTitle>
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <RotateCcw className="w-5 h-5 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{unclassifiedLogs}</div>
-            <p className="text-sm text-muted-foreground mt-1">Awaiting classification</p>
+            <div className="text-4xl font-bold text-orange-600 mb-1">{unclassifiedLogs}</div>
+            <p className="text-sm text-muted-foreground">Awaiting classification</p>
           </CardContent>
         </Card>
       </div>

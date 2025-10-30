@@ -109,17 +109,17 @@ export function Settings() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-start justify-between">
         <div>
-          <h1>Settings</h1>
-          <p className="text-muted-foreground mt-2">Configure ML model parameters and user permissions</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Settings</h1>
+          <p className="text-muted-foreground mt-2 text-base">Configure ML model parameters and user permissions</p>
         </div>
         {hasUnsavedChanges && (
-          <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-orange-500" />
-            <span className="text-orange-700 font-medium">Unsaved changes</span>
-            <Button onClick={handleSaveSettings} className="h-9 px-4">
+          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-orange-100/50 border-2 border-orange-300 rounded-xl shadow-lg">
+            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <span className="text-orange-800 font-semibold">Unsaved changes</span>
+            <Button onClick={handleSaveSettings} className="h-9 px-4 shadow-md bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg transition-all">
               <Save className="w-4 h-4 mr-2" />
               Save Settings
             </Button>
@@ -128,26 +128,28 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="ml-model" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-3 h-12">
-          <TabsTrigger value="ml-model" className="flex items-center gap-2 h-10 px-6">
+        <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-muted/50 rounded-xl shadow-sm">
+          <TabsTrigger value="ml-model" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
             <Brain className="w-4 h-4" />
-            ML Model
+            <span className="font-semibold">ML Model</span>
           </TabsTrigger>
-          <TabsTrigger value="permissions" className="flex items-center gap-2 h-10 px-6">
+          <TabsTrigger value="permissions" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
             <Users className="w-4 h-4" />
-            User Permissions
+            <span className="font-semibold">User Permissions</span>
           </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-2 h-10 px-6">
+          <TabsTrigger value="system" className="flex items-center gap-2 h-12 px-6 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
             <SettingsIcon className="w-4 h-4" />
-            System
+            <span className="font-semibold">System</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="ml-model" className="space-y-8">
-          <Card>
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Brain className="w-6 h-6" />
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-6 bg-gradient-to-r from-card to-accent/10">
+              <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Brain className="w-6 h-6 text-primary" />
+                </div>
                 Machine Learning Configuration
               </CardTitle>
             </CardHeader>
@@ -230,23 +232,23 @@ export function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Model Performance</h3>
+                <h3 className="text-lg font-semibold">Model Performance</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-2xl font-bold text-green-500">94.2%</div>
+                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/20 hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                      <div className="text-3xl font-bold text-green-600 mb-1">94.2%</div>
                       <p className="text-sm text-muted-foreground">Overall Accuracy</p>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-2xl font-bold text-blue-500">1,247</div>
+                  <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-card to-blue-50/20 hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                      <div className="text-3xl font-bold text-blue-600 mb-1">1,247</div>
                       <p className="text-sm text-muted-foreground">Logs Processed Today</p>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-2xl font-bold text-orange-500">23</div>
+                  <Card className="border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/20 hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                      <div className="text-3xl font-bold text-orange-600 mb-1">23</div>
                       <p className="text-sm text-muted-foreground">Corrections This Week</p>
                     </CardContent>
                   </Card>
@@ -257,10 +259,12 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="permissions" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-card to-accent/10">
+              <CardTitle className="flex items-center gap-3 text-lg font-bold">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
                 User Permissions Management
               </CardTitle>
             </CardHeader>
@@ -339,10 +343,12 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <SettingsIcon className="w-5 h-5" />
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-card to-accent/10">
+              <CardTitle className="flex items-center gap-3 text-lg font-bold">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <SettingsIcon className="w-5 h-5 text-primary" />
+                </div>
                 System Configuration
               </CardTitle>
             </CardHeader>

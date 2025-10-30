@@ -72,33 +72,33 @@ export default function App() {
       {/* Mobile menu overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity" 
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-80 bg-card border-r transform transition-transform duration-200 ease-in-out
+        fixed lg:static inset-y-0 left-0 z-50 w-80 bg-card border-r border-border/50 shadow-xl lg:shadow-none transform transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-8 border-b">
+          <div className="p-8 border-b border-border/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
                   <Shield className="w-7 h-7 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold">Wazuh SIEM</h1>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Wazuh SIEM</h1>
                   <p className="text-sm text-muted-foreground mt-1">ML-Enhanced Security</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden h-8 w-8"
+                className="lg:hidden h-8 w-8 hover:bg-accent/50"
                 onClick={() => setSidebarOpen(false)}
               >
                 <X className="w-4 h-4" />
@@ -107,7 +107,7 @@ export default function App() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-6 space-y-3">
+          <nav className="flex-1 p-6 space-y-2">
             {navigationItems.map((item) => {
               const isActive = activeTab === item.id;
               const Icon = item.icon;
@@ -116,8 +116,10 @@ export default function App() {
                 <Button
                   key={item.id}
                   variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full justify-start h-auto p-5 transition-all duration-200 ${
-                    isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'
+                  className={`w-full justify-start h-auto p-4 transition-all duration-200 group ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30' 
+                      : 'hover:bg-accent/50 hover:translate-x-1'
                   }`}
                   onClick={() => {
                     setActiveTab(item.id);
@@ -125,10 +127,14 @@ export default function App() {
                   }}
                 >
                   <div className="flex items-center gap-4 w-full">
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <div className="text-left">
-                      <div className="font-medium text-base">{item.label}</div>
-                      <div className={`text-sm mt-1 ${
+                    <div className={`p-2 rounded-lg transition-colors ${
+                      isActive ? 'bg-primary-foreground/10' : 'bg-transparent group-hover:bg-accent'
+                    }`}>
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <div className="font-semibold text-base">{item.label}</div>
+                      <div className={`text-xs mt-0.5 transition-colors ${
                         isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'
                       }`}>
                         {item.description}
@@ -141,27 +147,28 @@ export default function App() {
           </nav>
 
           {/* System Status */}
-          <div className="p-6 border-t">
-            <Card>
+          <div className="p-6 border-t border-border/50">
+            <Card className="bg-gradient-to-br from-card to-accent/20 border-border/50 shadow-sm">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-medium">System Status</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                  <span className="font-semibold text-foreground">System Status</span>
+                  <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 px-3 py-1 shadow-sm">
+                    <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
                     Operational
                   </Badge>
                 </div>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex justify-between items-center">
-                    <span>Model Accuracy</span>
-                    <span className="text-green-600 font-medium">94.2%</span>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-accent/30 transition-colors">
+                    <span className="text-muted-foreground">Model Accuracy</span>
+                    <span className="text-emerald-600 font-semibold">94.2%</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Active Alerts</span>
-                    <span className="text-red-600 font-medium">2 High</span>
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-accent/30 transition-colors">
+                    <span className="text-muted-foreground">Active Alerts</span>
+                    <span className="text-red-600 font-semibold">2 High</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Logs/Hour</span>
-                    <span className="font-medium">1,247</span>
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-accent/30 transition-colors">
+                    <span className="text-muted-foreground">Logs/Hour</span>
+                    <span className="font-semibold text-foreground">1,247</span>
                   </div>
                 </div>
               </CardContent>
@@ -173,12 +180,12 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1">
         {/* Mobile Header */}
-        <div className="lg:hidden bg-card border-b p-5">
+        <div className="lg:hidden bg-card border-b border-border/50 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
-              className="h-10 w-10"
+              className="h-10 w-10 hover:bg-accent/50"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
@@ -186,8 +193,10 @@ export default function App() {
             <div className="flex items-center gap-3">
               {activeItem && (
                 <>
-                  <activeItem.icon className="w-5 h-5" />
-                  <span className="font-medium text-base">{activeItem.label}</span>
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <activeItem.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="font-semibold text-base text-foreground">{activeItem.label}</span>
                 </>
               )}
             </div>

@@ -87,17 +87,17 @@ export function Alerts() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-start justify-between">
         <div>
-          <h1>Security Alerts</h1>
-          <p className="text-muted-foreground mt-2">Monitor and manage security alerts from ML threat detection</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Security Alerts</h1>
+          <p className="text-muted-foreground mt-2 text-base">Monitor and manage security alerts from ML threat detection</p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-lg px-4 py-2 font-medium">
+          <Badge className="text-base px-4 py-2 font-semibold bg-gradient-to-r from-primary to-primary/80 shadow-lg">
             {alertCounts.Total} Active Alerts
           </Badge>
-          <Button onClick={loadAlerts} disabled={loading} variant="outline">
+          <Button onClick={loadAlerts} disabled={loading} variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Loading...' : 'Refresh'}
           </Button>
@@ -106,53 +106,63 @@ export function Alerts() {
 
       {/* Alert Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-blue-500 bg-gradient-to-br from-card to-blue-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Total Active</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-blue-500" />
+            <CardTitle className="text-base font-semibold">Total Active</CardTitle>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-blue-500">{alertCounts.Total}</div>
-            <p className="text-sm text-muted-foreground mt-1">Requiring attention</p>
+            <div className="text-4xl font-bold text-blue-600 mb-1">{alertCounts.Total}</div>
+            <p className="text-sm text-muted-foreground">Requiring attention</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-red-500 bg-gradient-to-br from-card to-red-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">High Severity</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <CardTitle className="text-base font-semibold">High Severity</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{alertCounts.High}</div>
-            <p className="text-sm text-muted-foreground mt-1">Critical threats</p>
+            <div className="text-4xl font-bold text-red-600 mb-1">{alertCounts.High}</div>
+            <p className="text-sm text-muted-foreground">Critical threats</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Moderate Severity</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <CardTitle className="text-base font-semibold">Moderate Severity</CardTitle>
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{alertCounts.Moderate}</div>
-            <p className="text-sm text-muted-foreground mt-1">Monitor closely</p>
+            <div className="text-4xl font-bold text-orange-600 mb-1">{alertCounts.Moderate}</div>
+            <p className="text-sm text-muted-foreground">Monitor closely</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Low Severity</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <CardTitle className="text-base font-semibold">Low Severity</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{alertCounts.Low}</div>
-            <p className="text-sm text-muted-foreground mt-1">Routine review</p>
+            <div className="text-4xl font-bold text-green-600 mb-1">{alertCounts.Low}</div>
+            <p className="text-sm text-muted-foreground">Routine review</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Active Alerts */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4 bg-gradient-to-r from-card to-red-50/20">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
             Active Alerts ({activeAlerts.length})
           </CardTitle>
         </CardHeader>
@@ -250,41 +260,47 @@ export function Alerts() {
       </Card>
 
       {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alert Activity</CardTitle>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-card to-accent/10">
+          <CardTitle className="text-lg font-semibold">Recent Alert Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-red-200 transition-all bg-gradient-to-r from-card to-red-50/10">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                </div>
                 <div>
-                  <p className="font-medium">New high-severity alert detected</p>
+                  <p className="font-semibold">New high-severity alert detected</p>
                   <p className="text-sm text-muted-foreground">System file modification on WORKSTATION-01</p>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">2 mins ago</div>
+              <div className="text-sm text-muted-foreground font-medium">2 mins ago</div>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-green-200 transition-all bg-gradient-to-r from-card to-green-50/10">
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
                 <div>
-                  <p className="font-medium">Alert acknowledged</p>
+                  <p className="font-semibold">Alert acknowledged</p>
                   <p className="text-sm text-muted-foreground">SQL injection attempt resolved</p>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">15 mins ago</div>
+              <div className="text-sm text-muted-foreground font-medium">15 mins ago</div>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-orange-200 transition-all bg-gradient-to-r from-card to-orange-50/10">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-orange-600" />
+                </div>
                 <div>
-                  <p className="font-medium">Multiple failed login attempts</p>
+                  <p className="font-semibold">Multiple failed login attempts</p>
                   <p className="text-sm text-muted-foreground">Brute force attack detected on DATABASE-01</p>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">1 hour ago</div>
+              <div className="text-sm text-muted-foreground font-medium">1 hour ago</div>
             </div>
           </div>
         </CardContent>

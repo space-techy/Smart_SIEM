@@ -97,13 +97,13 @@ export function Dashboard() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1>Security Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Monitor and analyze security logs with ML-powered threat detection</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Security Dashboard</h1>
+          <p className="text-muted-foreground mt-2 text-base">Monitor and analyze security logs with ML-powered threat detection</p>
         </div>
-        <Button onClick={loadAlerts} disabled={loading} variant="outline">
+        <Button onClick={loadAlerts} disabled={loading} variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Loading...' : 'Refresh'}
         </Button>
@@ -111,42 +111,51 @@ export function Dashboard() {
 
       {/* Threat Level Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-red-500 bg-gradient-to-br from-card to-red-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">High Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <CardTitle className="text-base font-semibold">High Threats</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{threatCounts.High}</div>
-            <p className="text-sm text-muted-foreground mt-1">Requires immediate attention</p>
+            <div className="text-4xl font-bold text-red-600 mb-1">{threatCounts.High}</div>
+            <p className="text-sm text-muted-foreground">Requires immediate attention</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-orange-500 bg-gradient-to-br from-card to-orange-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Moderate Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <CardTitle className="text-base font-semibold">Moderate Threats</CardTitle>
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{threatCounts.Moderate}</div>
-            <p className="text-sm text-muted-foreground mt-1">Monitor closely</p>
+            <div className="text-4xl font-bold text-orange-600 mb-1">{threatCounts.Moderate}</div>
+            <p className="text-sm text-muted-foreground">Monitor closely</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Low Threats</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <CardTitle className="text-base font-semibold">Low Threats</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{threatCounts.Low}</div>
-            <p className="text-sm text-muted-foreground mt-1">Routine monitoring</p>
+            <div className="text-4xl font-bold text-green-600 mb-1">{threatCounts.Low}</div>
+            <p className="text-sm text-muted-foreground">Routine monitoring</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Search and Filters */}
-      <Card>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-4">
-          <CardTitle>Filters & Search</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-primary" />
+            Filters & Search
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-col md:flex-row gap-5">
@@ -155,14 +164,14 @@ export function Dashboard() {
                 <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
                 <Input
                   placeholder="Search by description, IP, or hostname..."
-                  className="pl-12 h-12 text-base"
+                  className="pl-12 h-12 text-base border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             <Select value={threatFilter} onValueChange={setThreatFilter}>
-              <SelectTrigger className="w-[200px] h-12">
+              <SelectTrigger className="w-[200px] h-12 border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20">
                 <SelectValue placeholder="Threat Level" />
               </SelectTrigger>
               <SelectContent>
@@ -173,7 +182,7 @@ export function Dashboard() {
               </SelectContent>
             </Select>
             <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-              <SelectTrigger className="w-[220px] h-12">
+              <SelectTrigger className="w-[220px] h-12 border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20">
                 <SelectValue placeholder="Log Type" />
               </SelectTrigger>
               <SelectContent>
@@ -188,9 +197,9 @@ export function Dashboard() {
       </Card>
 
       {/* Logs Table */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Security Logs ({filteredLogs.length})</CardTitle>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4 bg-gradient-to-r from-card to-accent/10">
+          <CardTitle className="text-lg font-semibold">Security Logs ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
