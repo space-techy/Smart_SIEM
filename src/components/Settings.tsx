@@ -271,19 +271,19 @@ export function Settings() {
             <CardContent>
               <div className="space-y-4">
                 {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={user.id} className="flex items-center justify-between p-5 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground font-bold shadow-md">
                         {user.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <div className="font-medium">{user.name}</div>
+                        <div className="font-semibold text-base">{user.name}</div>
                         <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRoleColor(user.role)}>
+                      <div className="flex items-center gap-3">
+                        <Badge className={`${getRoleColor(user.role)} px-3 py-1.5 font-semibold shadow-sm`}>
                           {user.role}
                         </Badge>
                         <Select
@@ -292,7 +292,7 @@ export function Settings() {
                             handleUserRoleChange(user.id, value)
                           }
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-36 border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -411,35 +411,35 @@ export function Settings() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-lg font-medium mb-3">System Status</h3>
+                  <h3 className="text-lg font-semibold mb-4">System Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
                       <div>
-                        <p className="font-medium">Log Ingestion</p>
-                        <p className="text-sm text-green-600">Active</p>
+                        <p className="font-semibold">Log Ingestion</p>
+                        <p className="text-sm text-green-600 font-medium">Active</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
                     </div>
-                    <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
                       <div>
-                        <p className="font-medium">ML Model</p>
-                        <p className="text-sm text-green-600">Running</p>
+                        <p className="font-semibold">ML Model</p>
+                        <p className="text-sm text-green-600 font-medium">Running</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
                     </div>
-                    <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
                       <div>
-                        <p className="font-medium">Alert System</p>
-                        <p className="text-sm text-green-600">Operational</p>
+                        <p className="font-semibold">Alert System</p>
+                        <p className="text-sm text-green-600 font-medium">Operational</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
                     </div>
-                    <div className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md transition-all bg-gradient-to-r from-card to-green-50/20">
                       <div>
-                        <p className="font-medium">Database</p>
-                        <p className="text-sm text-green-600">Connected</p>
+                        <p className="font-semibold">Database</p>
+                        <p className="text-sm text-green-600 font-medium">Connected</p>
                       </div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
                     </div>
                   </div>
                 </div>

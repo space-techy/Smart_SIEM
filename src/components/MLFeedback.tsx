@@ -180,16 +180,21 @@ export function MLFeedback() {
 
       {/* Feedback Queue */}
       {hasUnsavedChanges && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-orange-800 text-lg">Pending Feedback</CardTitle>
+        <Card className="border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100/50 shadow-lg">
+          <CardHeader className="pb-4 bg-gradient-to-r from-orange-100/50 to-orange-50">
+            <CardTitle className="text-orange-900 text-lg font-bold flex items-center gap-2">
+              <div className="p-2 bg-orange-200 rounded-lg">
+                <Save className="w-5 h-5 text-orange-700" />
+              </div>
+              Pending Feedback
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {feedback.map((f, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border border-orange-200">
-                  <span className="font-medium">Log {f.logId}: {f.originalClassification} → {f.correctedClassification}</span>
-                  <Badge variant="outline" className="text-orange-700 border-orange-300 px-3 py-1">
+                <div key={index} className="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-orange-200 shadow-sm hover:shadow-md transition-all">
+                  <span className="font-semibold text-foreground">Log {f.logId}: {f.originalClassification} → {f.correctedClassification}</span>
+                  <Badge className="bg-orange-100 text-orange-700 border-2 border-orange-300 px-3 py-1.5 font-semibold shadow-sm">
                     Pending
                   </Badge>
                 </div>
@@ -200,9 +205,9 @@ export function MLFeedback() {
       )}
 
       {/* Logs Needing Correction */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4 bg-gradient-to-r from-card to-accent/10">
+          <CardTitle className="text-lg font-semibold">Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -290,32 +295,32 @@ export function MLFeedback() {
       </Card>
 
       {/* Training History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Training Sessions</CardTitle>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-card to-accent/10">
+          <CardTitle className="text-lg font-semibold">Recent Training Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
               <div>
-                <p className="font-medium">Model retrain #47</p>
+                <p className="font-semibold">Model retrain #47</p>
                 <p className="text-sm text-muted-foreground">15 corrections applied • 2024-01-15 10:30</p>
               </div>
-              <Badge variant="secondary">Completed</Badge>
+              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
               <div>
-                <p className="font-medium">Model retrain #46</p>
+                <p className="font-semibold">Model retrain #46</p>
                 <p className="text-sm text-muted-foreground">23 corrections applied • 2024-01-14 16:45</p>
               </div>
-              <Badge variant="secondary">Completed</Badge>
+              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg hover:shadow-md hover:border-primary/30 transition-all bg-gradient-to-r from-card to-accent/5">
               <div>
-                <p className="font-medium">Model retrain #45</p>
+                <p className="font-semibold">Model retrain #45</p>
                 <p className="text-sm text-muted-foreground">8 corrections applied • 2024-01-14 09:15</p>
               </div>
-              <Badge variant="secondary">Completed</Badge>
+              <Badge className="bg-green-100 text-green-700 border border-green-200 px-3 py-1 font-medium">Completed</Badge>
             </div>
           </div>
         </CardContent>
