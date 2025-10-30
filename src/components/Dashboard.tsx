@@ -97,13 +97,17 @@ export function Dashboard() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8" style={{ animation: 'slide-in 0.5s ease-out' }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1>Security Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Monitor and analyze security logs with ML-powered threat detection</p>
+          <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Security Dashboard</h1>
+          <p className="text-muted-foreground mt-3 text-lg font-medium">Monitor and analyze security logs with ML-powered threat detection</p>
         </div>
-        <Button onClick={loadAlerts} disabled={loading} variant="outline">
+        <Button 
+          onClick={loadAlerts} 
+          disabled={loading} 
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/30 hover:shadow-2xl transition-all duration-300 px-6 h-12 rounded-xl font-semibold"
+        >
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Loading...' : 'Refresh'}
         </Button>
@@ -111,61 +115,86 @@ export function Dashboard() {
 
       {/* Threat Level Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">High Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+        <Card className="relative overflow-hidden group hover:scale-105 transition-all duration-300 border-0 shadow-xl hover:shadow-2xl" style={{
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)',
+          borderLeft: '4px solid rgb(239, 68, 68)'
+        }}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-500/10 to-transparent rounded-full -mr-16 -mt-16" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
+            <CardTitle className="text-base font-bold text-foreground">High Threats</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{threatCounts.High}</div>
-            <p className="text-sm text-muted-foreground mt-1">Requires immediate attention</p>
+          <CardContent className="pt-2 relative z-10">
+            <div className="text-5xl font-black text-red-600 mb-2">{threatCounts.High}</div>
+            <p className="text-sm text-muted-foreground font-semibold">Requires immediate attention</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Moderate Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+        
+        <Card className="relative overflow-hidden group hover:scale-105 transition-all duration-300 border-0 shadow-xl hover:shadow-2xl" style={{
+          background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.05) 0%, rgba(249, 115, 22, 0.1) 100%)',
+          borderLeft: '4px solid rgb(249, 115, 22)'
+        }}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full -mr-16 -mt-16" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
+            <CardTitle className="text-base font-bold text-foreground">Moderate Threats</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-300">
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{threatCounts.Moderate}</div>
-            <p className="text-sm text-muted-foreground mt-1">Monitor closely</p>
+          <CardContent className="pt-2 relative z-10">
+            <div className="text-5xl font-black text-orange-600 mb-2">{threatCounts.Moderate}</div>
+            <p className="text-sm text-muted-foreground font-semibold">Monitor closely</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Low Threats</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+        
+        <Card className="relative overflow-hidden group hover:scale-105 transition-all duration-300 border-0 shadow-xl hover:shadow-2xl" style={{
+          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.1) 100%)',
+          borderLeft: '4px solid rgb(34, 197, 94)'
+        }}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-transparent rounded-full -mr-16 -mt-16" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
+            <CardTitle className="text-base font-bold text-foreground">Low Threats</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform duration-300">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{threatCounts.Low}</div>
-            <p className="text-sm text-muted-foreground mt-1">Routine monitoring</p>
+          <CardContent className="pt-2 relative z-10">
+            <div className="text-5xl font-black text-green-600 mb-2">{threatCounts.Low}</div>
+            <p className="text-sm text-muted-foreground font-semibold">Routine monitoring</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Filters & Search</CardTitle>
+      <Card className="glass-effect border-primary/20 shadow-xl">
+        <CardHeader className="pb-4 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
+          <CardTitle className="flex items-center gap-3 text-lg font-bold">
+            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            Filters & Search
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-col md:flex-row gap-5">
             <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+              <div className="relative group">
+                <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder="Search by description, IP, or hostname..."
-                  className="pl-12 h-12 text-base"
+                  className="pl-12 h-14 text-base border-2 border-primary/20 focus:border-primary rounded-xl shadow-sm focus:shadow-lg transition-all duration-300 bg-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             <Select value={threatFilter} onValueChange={setThreatFilter}>
-              <SelectTrigger className="w-[200px] h-12">
+              <SelectTrigger className="w-[200px] h-14 border-2 border-primary/20 focus:border-primary rounded-xl shadow-sm focus:shadow-lg transition-all duration-300 font-semibold bg-white">
                 <SelectValue placeholder="Threat Level" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl shadow-2xl">
                 <SelectItem value="all">All Threats</SelectItem>
                 <SelectItem value="High">High</SelectItem>
                 <SelectItem value="Moderate">Moderate</SelectItem>
@@ -173,10 +202,10 @@ export function Dashboard() {
               </SelectContent>
             </Select>
             <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-              <SelectTrigger className="w-[220px] h-12">
+              <SelectTrigger className="w-[220px] h-14 border-2 border-primary/20 focus:border-primary rounded-xl shadow-sm focus:shadow-lg transition-all duration-300 font-semibold bg-white">
                 <SelectValue placeholder="Log Type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl shadow-2xl">
                 <SelectItem value="all">All Types</SelectItem>
                 {logTypes.map(type => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
@@ -188,9 +217,9 @@ export function Dashboard() {
       </Card>
 
       {/* Logs Table */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Security Logs ({filteredLogs.length})</CardTitle>
+      <Card className="glass-effect border-primary/20 shadow-xl">
+        <CardHeader className="pb-4 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
+          <CardTitle className="text-xl font-bold">Security Logs ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

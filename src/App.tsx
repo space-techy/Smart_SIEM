@@ -68,37 +68,49 @@ export default function App() {
   const activeItem = navigationItems.find(item => item.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background-solid flex relative">
       {/* Mobile menu overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-all duration-300" 
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-80 bg-card border-r transform transition-transform duration-200 ease-in-out
+        fixed lg:static inset-y-0 left-0 z-50 w-80 glass-effect shadow-2xl transform transition-all duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="flex flex-col h-full">
+      `}
+      style={{
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(99, 102, 241, 0.15)'
+      }}>
+        <div className="flex flex-col h-full relative">
+          {/* Decorative gradient overlay */}
+          <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none" />
+          
           {/* Header */}
-          <div className="p-8 border-b">
+          <div className="p-8 border-b border-primary/10 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                  <Shield className="w-7 h-7 text-primary-foreground" />
+                <div className="relative">
+                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
+                    <Shield className="w-8 h-8 text-white relative z-10" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold">Wazuh SIEM</h1>
-                  <p className="text-sm text-muted-foreground mt-1">ML-Enhanced Security</p>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Wazuh SIEM</h1>
+                  <p className="text-sm text-muted-foreground mt-0.5 font-medium">ML-Enhanced Security</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden h-8 w-8"
+                className="lg:hidden h-9 w-9 rounded-xl hover:bg-primary/10 transition-colors"
                 onClick={() => setSidebarOpen(false)}
               >
                 <X className="w-4 h-4" />
@@ -107,61 +119,83 @@ export default function App() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-6 space-y-3">
-            {navigationItems.map((item) => {
+          <nav className="flex-1 p-6 space-y-2 relative z-10">
+            {navigationItems.map((item, index) => {
               const isActive = activeTab === item.id;
               const Icon = item.icon;
               
               return (
-                <Button
+                <div
                   key={item.id}
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full justify-start h-auto p-5 transition-all duration-200 ${
-                    isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'
-                  }`}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSidebarOpen(false);
+                  className="relative"
+                  style={{
+                    animation: `slide-in 0.3s ease-out ${index * 0.1}s backwards`
                   }}
                 >
-                  <div className="flex items-center gap-4 w-full">
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <div className="text-left">
-                      <div className="font-medium text-base">{item.label}</div>
-                      <div className={`text-sm mt-1 ${
-                        isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={`w-full justify-start h-auto p-4 transition-all duration-300 relative overflow-hidden group ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/30' 
+                        : 'hover:bg-primary/5 hover:translate-x-1'
+                    }`}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setSidebarOpen(false);
+                    }}
+                  >
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+                    )}
+                    <div className="flex items-center gap-4 w-full relative z-10">
+                      <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                        isActive 
+                          ? 'bg-white/20 shadow-lg' 
+                          : 'bg-primary/5 group-hover:bg-primary/10 group-hover:scale-110'
                       }`}>
-                        {item.description}
+                        <Icon className="w-5 h-5 flex-shrink-0" />
                       </div>
+                      <div className="text-left flex-1">
+                        <div className="font-semibold text-base">{item.label}</div>
+                        <div className={`text-xs mt-0.5 transition-colors ${
+                          isActive ? 'text-white/80' : 'text-muted-foreground'
+                        }`}>
+                          {item.description}
+                        </div>
+                      </div>
+                      {isActive && (
+                        <div className="w-1.5 h-8 bg-white/30 rounded-full" />
+                      )}
                     </div>
-                  </div>
-                </Button>
+                  </Button>
+                </div>
               );
             })}
           </nav>
 
           {/* System Status */}
-          <div className="p-6 border-t">
-            <Card>
+          <div className="p-6 border-t border-primary/10 relative z-10">
+            <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 border-primary/20 shadow-lg">
               <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-medium">System Status</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                <div className="flex items-center justify-between mb-5">
+                  <span className="font-bold text-foreground">System Status</span>
+                  <Badge className="bg-gradient-to-r from-emerald-400 to-green-500 text-white border-0 px-3 py-1 shadow-lg shadow-emerald-500/30">
+                    <span className="inline-block w-2 h-2 bg-white rounded-full mr-2 animate-pulse shadow-lg"></span>
                     Operational
                   </Badge>
                 </div>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex justify-between items-center">
-                    <span>Model Accuracy</span>
-                    <span className="text-green-600 font-medium">94.2%</span>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center p-2.5 rounded-lg hover:bg-white/60 transition-colors">
+                    <span className="text-muted-foreground font-medium">Model Accuracy</span>
+                    <span className="text-emerald-600 font-bold text-base">94.2%</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Active Alerts</span>
-                    <span className="text-red-600 font-medium">2 High</span>
+                  <div className="flex justify-between items-center p-2.5 rounded-lg hover:bg-white/60 transition-colors">
+                    <span className="text-muted-foreground font-medium">Active Alerts</span>
+                    <span className="text-rose-600 font-bold text-base">2 High</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Logs/Hour</span>
-                    <span className="font-medium">1,247</span>
+                  <div className="flex justify-between items-center p-2.5 rounded-lg hover:bg-white/60 transition-colors">
+                    <span className="text-muted-foreground font-medium">Logs/Hour</span>
+                    <span className="font-bold text-foreground text-base">1,247</span>
                   </div>
                 </div>
               </CardContent>
@@ -173,12 +207,12 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1">
         {/* Mobile Header */}
-        <div className="lg:hidden bg-card border-b p-5">
+        <div className="lg:hidden glass-effect border-b border-primary/10 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
-              className="h-10 w-10"
+              className="h-10 w-10 rounded-xl hover:bg-primary/10"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
@@ -186,8 +220,10 @@ export default function App() {
             <div className="flex items-center gap-3">
               {activeItem && (
                 <>
-                  <activeItem.icon className="w-5 h-5" />
-                  <span className="font-medium text-base">{activeItem.label}</span>
+                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                    <activeItem.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="font-bold text-base bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{activeItem.label}</span>
                 </>
               )}
             </div>
@@ -196,7 +232,7 @@ export default function App() {
         </div>
 
         {/* Content Area */}
-        <main className="flex-1">
+        <main className="flex-1 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-slate-900 dark:to-indigo-950/30">
           {renderContent()}
         </main>
       </div>
