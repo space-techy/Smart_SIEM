@@ -19,6 +19,15 @@ const getThreatLevelColor = (level: string) => {
   }
 };
 
+const getMLScoreColor = (score: number) => {
+  // Score is 0.00-10.00, color code from green (0) to red (10)
+  if (score >= 8.0) return 'bg-red-500 text-white';
+  if (score >= 6.0) return 'bg-orange-500 text-white';
+  if (score >= 4.0) return 'bg-yellow-500 text-white';
+  if (score >= 2.0) return 'bg-blue-500 text-white';
+  return 'bg-green-500 text-white';
+};
+
 const getThreatLevelIcon = (level: string) => {
   switch (level) {
     case 'High': return <AlertTriangle className="w-4 h-4" />;
@@ -58,6 +67,9 @@ export function Dashboard() {
         // Map label from backend to classification
         classification: alert.label === 'malicious' ? 'Malicious' : alert.label === 'safe' ? 'Non-Malicious' : undefined,
         isCorrect: undefined,
+        // ML Prediction data (scale 0.0-1.0 to 0.00-10.00)
+        mlScore: alert.predicted_score != null ? (alert.predicted_score * 10).toFixed(2) : null,
+        mlLabel: alert.predicted_label || null,
         // Keep original alert data
         _original: alert
       }));
@@ -106,11 +118,11 @@ export function Dashboard() {
     } catch (error) {
       console.error('Classification failed:', error);
       // Revert on error
-      setLogs(prevLogs =>
-        prevLogs.map(log =>
+    setLogs(prevLogs =>
+      prevLogs.map(log =>
           log.id === logId ? { ...log, classification: undefined, classifying: false } : log
-        )
-      );
+      )
+    );
       alert('Failed to classify alert. Please try again.');
     }
   };
@@ -127,45 +139,45 @@ export function Dashboard() {
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1>Security Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Monitor and analyze security logs with ML-powered threat detection</p>
+          <h1 className="text-2xl font-bold">Security Dashboard</h1>
+          <p className="text-muted-foreground">Monitor and analyze security logs with ML-powered threat detection</p>
         </div>
-        <Button onClick={loadAlerts} disabled={loading} variant="outline">
+        <Button onClick={loadAlerts} disabled={loading} variant="outline" size="sm">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Loading...' : 'Refresh'}
+          Refresh
         </Button>
       </div>
 
       {/* Threat Level Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">High Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Threats</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-red-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{threatCounts.High}</div>
-            <p className="text-sm text-muted-foreground mt-1">Requires immediate attention</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{threatCounts.High}</div>
+            <p className="text-xs text-muted-foreground">Requires immediate attention</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Moderate Threats</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Moderate Threats</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-orange-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{threatCounts.Moderate}</div>
-            <p className="text-sm text-muted-foreground mt-1">Monitor closely</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{threatCounts.Moderate}</div>
+            <p className="text-xs text-muted-foreground">Monitor closely</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Low Threats</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Threats</CardTitle>
+            <CheckCircle className="w-4 h-4 text-green-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{threatCounts.Low}</div>
-            <p className="text-sm text-muted-foreground mt-1">Routine monitoring</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{threatCounts.Low}</div>
+            <p className="text-xs text-muted-foreground">Routine monitoring</p>
           </CardContent>
         </Card>
       </div>
@@ -173,23 +185,23 @@ export function Dashboard() {
       {/* Search and Filters */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle>Filters & Search</CardTitle>
+          <CardTitle className="text-base">Filters & Search</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex flex-col md:flex-row gap-5">
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by description, IP, or hostname..."
-                  className="pl-12 h-12 text-base"
+                  placeholder="Search logs..."
+                  className="pl-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             <Select value={threatFilter} onValueChange={setThreatFilter}>
-              <SelectTrigger className="w-[200px] h-12">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Threat Level" />
               </SelectTrigger>
               <SelectContent>
@@ -200,7 +212,7 @@ export function Dashboard() {
               </SelectContent>
             </Select>
             <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-              <SelectTrigger className="w-[220px] h-12">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Log Type" />
               </SelectTrigger>
               <SelectContent>
@@ -217,61 +229,86 @@ export function Dashboard() {
       {/* Logs Table */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle>Security Logs ({filteredLogs.length})</CardTitle>
+          <CardTitle className="text-base">Security Logs ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading alerts from database...</span>
+              <span className="ml-3 text-muted-foreground">Loading...</span>
             </div>
           ) : logs.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-orange-500" />
-              <h3 className="text-lg font-medium mb-2">No alerts found</h3>
-              <p>Send some alerts to the backend to see them here.</p>
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-orange-500 opacity-50" />
+              <p className="text-sm">No alerts found</p>
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-sm mb-4">No matching alerts</p>
+              <Button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setThreatFilter('all');
+                  setLogTypeFilter('all');
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Clear Filters
+              </Button>
             </div>
           ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b-2">
-                  <TableHead className="py-4 font-medium">Timestamp</TableHead>
-                  <TableHead className="py-4 font-medium">Source</TableHead>
-                  <TableHead className="py-4 font-medium">Log Type</TableHead>
-                  <TableHead className="py-4 font-medium">Threat Level</TableHead>
-                  <TableHead className="py-4 font-medium">Description</TableHead>
-                  <TableHead className="py-4 font-medium">Classification</TableHead>
-                  <TableHead className="py-4 font-medium">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>ML Score</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Classification</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLogs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-mono py-4">{log.timestamp}</TableCell>
+                  <TableRow key={log.id} className="hover:bg-muted/20">
+                    <TableCell className="font-mono text-xs">{log.timestamp}</TableCell>
                     <TableCell className="py-4">
                       <div className="space-y-1">
                         <div className="font-medium">{log.sourceIp}</div>
                         <div className="text-sm text-muted-foreground">{log.hostname}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
-                      <Badge variant="outline" className="px-3 py-1">
-                        {log.logType}
+                    <TableCell>
+                      <span className="text-xs">{log.logType}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getThreatLevelColor(log.threatLevel)} variant="outline">
+                        {log.threatLevel}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4">
-                      <Badge className={getThreatLevelColor(log.threatLevel)}>
-                        <div className="flex items-center gap-2">
-                          {getThreatLevelIcon(log.threatLevel)}
-                          {log.threatLevel}
+                    <TableCell>
+                      {log.mlScore ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge className={getMLScoreColor(parseFloat(log.mlScore))}>
+                            {log.mlScore}
+                          </Badge>
+                          {log.mlLabel && (
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {log.mlLabel}
+                            </span>
+                          )}
                         </div>
-                      </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Pending</span>
+                      )}
                     </TableCell>
-                    <TableCell className="max-w-sm py-4">
-                      <div className="truncate" title={log.description}>
-                        {log.description}
-                      </div>
+                    <TableCell className="max-w-xs truncate" title={log.description}>
+                      {log.description}
                     </TableCell>
                     <TableCell className="py-4">
                       {log.classification ? (
@@ -291,8 +328,8 @@ export function Dashboard() {
                             variant="outline"
                             className={
                               log.classification === 'Malicious' 
-                                ? "text-green-600 border-green-200 hover:bg-green-50 h-8"
-                                : "text-red-600 border-red-200 hover:bg-red-50 h-8"
+                                ? "text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 h-9 font-medium transition-all"
+                                : "text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-9 font-medium transition-all"
                             }
                             onClick={() => handleClassification(
                               log.id, 
@@ -301,96 +338,91 @@ export function Dashboard() {
                             disabled={log.classifying}
                           >
                             {log.classification === 'Malicious' ? (
-                              <><CheckCircle className="w-3 h-3 mr-2" /> Mark as Safe</>
+                              <><CheckCircle className="w-3.5 h-3.5 mr-2" /> Change to Safe</>
                             ) : (
-                              <><XCircle className="w-3 h-3 mr-2" /> Mark as Malicious</>
+                              <><XCircle className="w-3.5 h-3.5 mr-2" /> Change to Malicious</>
                             )}
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2 min-w-[160px]">
+                        <div className="flex flex-col gap-2 min-w-[180px]">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50 h-8"
+                            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-9 font-medium transition-all"
                             onClick={() => handleClassification(log.id, 'Malicious')}
                             disabled={log.classifying}
                           >
-                            <XCircle className="w-3 h-3 mr-2" />
-                            Malicious
+                            <XCircle className="w-3.5 h-3.5 mr-2" />
+                            Mark Malicious
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-green-600 border-green-200 hover:bg-green-50 h-8"
+                            className="text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 h-9 font-medium transition-all"
                             onClick={() => handleClassification(log.id, 'Non-Malicious')}
                             disabled={log.classifying}
                           >
-                            <CheckCircle className="w-3 h-3 mr-2" />
-                            Safe
+                            <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                            Mark Safe
                           </Button>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 text-center">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9 px-4"
+                            className="h-9 px-3"
                             onClick={() => setSelectedLog(log)}
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Details
+                            <Eye className="w-4 h-4 mr-1.5" />
+                            View
                           </Button>
                         </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader className="pb-6">
-                          <DialogTitle className="text-xl">Log Details</DialogTitle>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>Log Details</DialogTitle>
                         </DialogHeader>
                         {selectedLog && (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-2">
-                                <label className="font-medium">Timestamp</label>
-                                <p className="font-mono text-sm bg-muted p-3 rounded">{selectedLog.timestamp}</p>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Timestamp</label>
+                                <p className="font-mono text-sm mt-1">{selectedLog.timestamp}</p>
                               </div>
-                              <div className="space-y-2">
-                                <label className="font-medium">Source IP</label>
-                                <p className="text-sm bg-muted p-3 rounded">{selectedLog.sourceIp}</p>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Source IP</label>
+                                <p className="text-sm mt-1">{selectedLog.sourceIp}</p>
                               </div>
-                              <div className="space-y-2">
-                                <label className="font-medium">Hostname</label>
-                                <p className="text-sm bg-muted p-3 rounded">{selectedLog.hostname}</p>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Hostname</label>
+                                <p className="text-sm mt-1">{selectedLog.hostname}</p>
                               </div>
-                              <div className="space-y-2">
-                                <label className="font-medium">Log Type</label>
-                                <p className="text-sm bg-muted p-3 rounded">{selectedLog.logType}</p>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Log Type</label>
+                                <p className="text-sm mt-1">{selectedLog.logType}</p>
                               </div>
-                              <div className="space-y-2">
-                                <label className="font-medium">Threat Level</label>
-                                <div className="flex items-start">
-                                  <Badge className={getThreatLevelColor(selectedLog.threatLevel) + " px-3 py-2"}>
-                                    <div className="flex items-center gap-2">
-                                      {getThreatLevelIcon(selectedLog.threatLevel)}
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Threat Level</label>
+                                <Badge className={getThreatLevelColor(selectedLog.threatLevel) + " mt-1"}>
                                       {selectedLog.threatLevel}
-                                    </div>
                                   </Badge>
-                                </div>
                               </div>
-                              <div className="space-y-2">
-                                <label className="font-medium">Classification</label>
-                                <p className="text-sm bg-muted p-3 rounded">{selectedLog.classification || 'Unclassified'}</p>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Classification</label>
+                                <p className="text-sm mt-1">{selectedLog.classification || 'Unclassified'}</p>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <label className="font-medium">Description</label>
-                              <p className="text-sm bg-muted p-4 rounded leading-relaxed">{selectedLog.description}</p>
+                            <div>
+                              <label className="text-xs font-medium text-muted-foreground">Description</label>
+                              <p className="text-sm mt-1">{selectedLog.description}</p>
                             </div>
-                            <div className="space-y-2">
-                              <label className="font-medium">Raw Log</label>
-                              <pre className="bg-muted p-4 rounded text-sm overflow-x-auto leading-relaxed border">
+                            <div>
+                              <label className="text-xs font-medium text-muted-foreground">Raw Log</label>
+                              <pre className="bg-muted p-3 rounded text-xs overflow-x-auto mt-1">
                                 {selectedLog.rawLog}
                               </pre>
                             </div>
@@ -402,7 +434,7 @@ export function Dashboard() {
                 </TableRow>
               ))}
             </TableBody>
-            </Table>
+          </Table>
           </div>
           )}
         </CardContent>

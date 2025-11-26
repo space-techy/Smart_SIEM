@@ -171,3 +171,65 @@ async def close_client() -> None:
         _client_initialized = False
         print("[DB] ✓ MongoDB client closed")
 
+
+# ============================================================================
+# ML SETTINGS AND PREDICTIONS
+# ============================================================================
+
+async def get_settings() -> Dict[str, Any] | None:
+    """Get ML settings from database."""
+    collection = get_collection("settings")
+    settings = await collection.find_one({"_id": "ml_settings"})
+    return settings
+
+
+async def update_settings(patch: Dict[str, Any]) -> Dict[str, Any]:
+    """Update ML settings (upsert)."""
+    collection = get_collection("settings")
+    await collection.update_one(
+        {"_id": "ml_settings"},
+        {"$set": patch},
+        upsert=True
+    )
+    # Return updated settings
+    return await get_settings() or patch
+
+
+async def insert_prediction(
+    event_id: str,
+    label: str,
+    score: float,
+    version: str
+) -> None:
+    """
+    Store ML prediction for an event.
+    Updates the alert document with prediction fields.
+    """
+    alerts_collection = get_collection("alerts")
+    await alerts_collection.update_one(
+        {"_id": event_id},
+        {
+            "$set": {
+                "predicted_label": label,
+                "predicted_score": score,
+                "model_version": version,
+                "predicted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            }
+        }
+    )
+
+
+async def load_training_rows() -> tuple:
+    """
+    Load training data from malicious and safe collections.
+    Returns (malicious_cursor, safe_cursor) for streaming.
+    """
+    malicious_collection = get_collection("malicious")
+    safe_collection = get_collection("safe")
+    
+    # Return cursors for efficient streaming
+    malicious_cursor = malicious_collection.find()
+    safe_cursor = safe_collection.find()
+    
+    return (malicious_cursor, safe_cursor)
+

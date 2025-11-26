@@ -1,5 +1,5 @@
 // API service for backend communication
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8081';
 const API_KEY = 'devkey'; // TODO: Move to env variable
 
 export const api = {
@@ -78,6 +78,27 @@ export const api = {
       return data;
     } catch (error) {
       console.error('Failed to get classification:', error);
+      return null;
+    }
+  },
+
+  // Evaluate ML model on labeled data
+  async evaluateModel() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ml/evaluate`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to evaluate model:', error);
       return null;
     }
   },

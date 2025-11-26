@@ -47,8 +47,22 @@ const navigationItems = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  // Use URL hash for routing (preserves page on refresh)
+  const getInitialTab = (): ActiveTab => {
+    const hash = window.location.hash.slice(1) as ActiveTab;
+    const validTabs: ActiveTab[] = ['dashboard', 'ml-feedback', 'alerts', 'settings'];
+    return validTabs.includes(hash) ? hash : 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(getInitialTab());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Update URL hash when tab changes
+  const handleTabChange = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+    setSidebarOpen(false);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -119,10 +133,7 @@ export default function App() {
                   className={`w-full justify-start h-auto p-5 transition-all duration-200 ${
                     isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'
                   }`}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleTabChange(item.id)}
                 >
                   <div className="flex items-center gap-4 w-full">
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -140,32 +151,17 @@ export default function App() {
             })}
           </nav>
 
-          {/* System Status */}
+          {/* Footer Info */}
           <div className="p-6 border-t">
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-medium">System Status</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
-                    Operational
-                  </Badge>
+            <div className="text-sm text-muted-foreground text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>System Online</span>
                 </div>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex justify-between items-center">
-                    <span>Model Accuracy</span>
-                    <span className="text-green-600 font-medium">94.2%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Active Alerts</span>
-                    <span className="text-red-600 font-medium">2 High</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Logs/Hour</span>
-                    <span className="font-medium">1,247</span>
+              <div className="text-xs">
+                Backend: <span className="font-mono">localhost:8081</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -196,7 +192,7 @@ export default function App() {
         </div>
 
         {/* Content Area */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-auto">
           {renderContent()}
         </main>
       </div>

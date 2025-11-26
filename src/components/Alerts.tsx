@@ -92,60 +92,55 @@ export function Alerts() {
     <div className="p-8 space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1>Security Alerts</h1>
-          <p className="text-muted-foreground mt-2">Monitor and manage security alerts from ML threat detection</p>
+          <h1 className="text-2xl font-bold">Security Alerts</h1>
+          <p className="text-muted-foreground">Monitor and manage security alerts</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-lg px-4 py-2 font-medium">
-            {alertCounts.Total} Active Alerts
-          </Badge>
-          <Button onClick={loadAlerts} disabled={loading} variant="outline">
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-        </div>
+        <Button onClick={loadAlerts} disabled={loading} variant="outline" size="sm">
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Alert Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Total Active</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-blue-500" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Active</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-blue-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-blue-500">{alertCounts.Total}</div>
-            <p className="text-sm text-muted-foreground mt-1">Requiring attention</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{alertCounts.Total}</div>
+            <p className="text-xs text-muted-foreground">Alerts</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">High Severity</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Severity</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-red-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-red-500">{alertCounts.High}</div>
-            <p className="text-sm text-muted-foreground mt-1">Critical threats</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{alertCounts.High}</div>
+            <p className="text-xs text-muted-foreground">Critical</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Moderate Severity</CardTitle>
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Moderate</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-orange-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-orange-500">{alertCounts.Moderate}</div>
-            <p className="text-sm text-muted-foreground mt-1">Monitor closely</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{alertCounts.Moderate}</div>
+            <p className="text-xs text-muted-foreground">Warning</p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Low Severity</CardTitle>
-            <CheckCircle className="w-5 h-5 text-green-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Severity</CardTitle>
+            <CheckCircle className="w-4 h-4 text-green-500" />
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="text-3xl font-bold text-green-500">{alertCounts.Low}</div>
-            <p className="text-sm text-muted-foreground mt-1">Routine review</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{alertCounts.Low}</div>
+            <p className="text-xs text-muted-foreground">Info</p>
           </CardContent>
         </Card>
       </div>
@@ -153,22 +148,18 @@ export function Alerts() {
       {/* Active Alerts */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
-            Active Alerts ({activeAlerts.length})
-          </CardTitle>
+          <CardTitle className="text-base">Active Alerts ({activeAlerts.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading alerts from database...</span>
+              <span className="ml-3 text-muted-foreground">Loading...</span>
             </div>
           ) : activeAlerts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <CheckCircle className="w-16 h-16 mx-auto mb-6 text-green-500" />
-              <h3 className="text-lg font-medium mb-2">No active alerts!</h3>
-              <p>Your system is secure.</p>
+              <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+              <p className="text-sm">No active alerts</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -251,57 +242,15 @@ export function Alerts() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alert Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-                <div>
-                  <p className="font-medium">New high-severity alert detected</p>
-                  <p className="text-sm text-muted-foreground">System file modification on WORKSTATION-01</p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">2 mins ago</div>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <div>
-                  <p className="font-medium">Alert acknowledged</p>
-                  <p className="text-sm text-muted-foreground">SQL injection attempt resolved</p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">15 mins ago</div>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-4 h-4 text-orange-500" />
-                <div>
-                  <p className="font-medium">Multiple failed login attempts</p>
-                  <p className="text-sm text-muted-foreground">Brute force attack detected on DATABASE-01</p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">1 hour ago</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Acknowledged Alerts */}
       {acknowledgedAlerts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              Acknowledged Alerts ({acknowledgedAlerts.length})
-            </CardTitle>
+            <CardTitle className="text-base">Acknowledged Alerts ({acknowledgedAlerts.length})</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -320,19 +269,17 @@ export function Alerts() {
                         {alert.severity}
                       </Badge>
                     </TableCell>
-                    <TableCell>{alert.title}</TableCell>
+                        <TableCell className="font-medium">{alert.title}</TableCell>
                     <TableCell className="max-w-md">{alert.description}</TableCell>
-                    <TableCell className="font-mono text-sm">{alert.timestamp}</TableCell>
+                        <TableCell className="font-mono text-xs">{alert.timestamp}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Acknowledged
-                      </Badge>
+                          <Badge variant="secondary">Acknowledged</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

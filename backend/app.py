@@ -1,6 +1,6 @@
 """
 FastAPI backend to receive Wazuh alerts via custom integration hook.
-Persists alerts to MongoDB and returns 200 OK.
+Persists alerts to MongoDB with ML predictions and returns 200 OK.
 """
 import json
 import os
@@ -10,7 +10,10 @@ from typing import Any, Dict
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from db import ensure_indexes, insert_alert, close_client
+from db import (
+    ensure_indexes, insert_alert, close_client, get_collection,
+    get_settings, update_settings, insert_prediction
+)
 
 # Configuration from environment
 BACKEND_KEY = os.getenv("BACKEND_KEY", "devkey")
@@ -99,16 +102,60 @@ def format_console_line(alert_data: Dict[str, Any]) -> str:
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database indexes on startup."""
-    print("[APP] Starting Wazuh Alert Receiver...")
+    """Initialize database, ML model, and scheduler on startup."""
+    import asyncio
+    
+    print("[APP] Starting Wazuh Alert Receiver with ML...")
+    
+    # Initialize database indexes
     await ensure_indexes()
-    print("[APP] Ready to receive alerts")
+    
+    # Load ML model
+    try:
+        from model_wrapper import get_model
+        model = get_model()
+        
+        if model.is_loaded():
+            print("[APP] ✓ ML model loaded successfully")
+            
+            # Run FORCE backfill in background (re-predict ALL alerts)
+            async def run_backfill():
+                await asyncio.sleep(5)  # Wait 5s for system to be ready
+                from backfill import backfill_predictions
+                print("[APP] ✓ Starting FORCE backfill (will re-predict all alerts)...")
+                await backfill_predictions(force=True)  # ← FORCE MODE ON!
+            
+            asyncio.create_task(run_backfill())
+            print("[APP] ✓ Force backfill scheduled (will run in 5s)")
+        else:
+            print("[APP] ⚠ ML model not loaded")
+    except Exception as e:
+        print(f"[APP] ⚠ ML model error: {e}")
+    
+    # Start scheduler
+    try:
+        from scheduler import start_scheduler
+        await start_scheduler()
+        print("[APP] ✓ Scheduler started")
+    except Exception as e:
+        print(f"[APP] ⚠ Scheduler error: {e}")
+    
+    print("[APP] ✓ Ready to receive alerts with ML predictions")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Close database connection on shutdown."""
+    """Close database connection and stop scheduler on shutdown."""
     print("[APP] Shutting down...")
+    
+    # Stop scheduler
+    try:
+        from scheduler import stop_scheduler
+        stop_scheduler()
+    except Exception as e:
+        print(f"[APP] Warning: Failed to stop scheduler: {e}")
+    
+    # Close database
     await close_client()
 
 
@@ -290,7 +337,7 @@ async def receive_event(request: Request, authorization: str | None = Header(Non
     """
     Receive Wazuh alert events.
     Requires Bearer token authentication.
-    Persists to MongoDB with idempotency.
+    Persists to MongoDB with ML predictions and optional auto-classification.
     """
     # Verify authorization
     verify_token(authorization)
@@ -322,9 +369,444 @@ async def receive_event(request: Request, authorization: str | None = Header(Non
     # Log success (minimal)
     if "Inserted" in message:
         print(f"[OK] {message}")
-    # Don't log duplicates to avoid noise
+    
+    # ===== ML PREDICTION =====
+    try:
+        from model_wrapper import get_model
+        from db import compute_id
+        
+        model = get_model()
+        
+        if model.is_loaded():
+            # Get alert ID
+            alert_id = compute_id(alert_copy)
+            
+            # Predict using full pipeline
+            pred = model.predict(alert_copy)
+            
+            if "error" not in pred:
+                # Store prediction
+                await insert_prediction(
+                    event_id=alert_id,
+                    label=pred["label"],
+                    score=pred["score"],
+                    version=pred["version"]
+                )
+                
+                print(f"[ML] Predicted: {pred['label']} (score: {pred['score']:.3f})")
+                
+                # Optional auto-classification
+                settings = await get_settings()
+                if settings and settings.get("auto_classify", False):
+                    threshold = float(settings.get("confidence_threshold", 0.85))
+                    
+                    if pred["label"] == "malicious" and pred["score"] >= threshold:
+                        print(f"[ML] Auto-classifying (score >= {threshold})")
+                        
+                        alert_copy["label"] = "malicious"
+                        alert_copy["labeled_at"] = datetime.now().isoformat()
+                        alert_copy["auto_classified"] = True
+                        
+                        malicious_collection = get_collection("malicious")
+                        await malicious_collection.replace_one(
+                            {"_id": alert_id},
+                            alert_copy,
+                            upsert=True
+                        )
+                        
+                        await get_collection("alerts").update_one(
+                            {"_id": alert_id},
+                            {"$set": {
+                                "label": "malicious",
+                                "labeled_at": alert_copy["labeled_at"],
+                                "auto_classified": True
+                            }}
+                        )
+                        
+                        print(f"[ML] ✓ Auto-classified as malicious")
+            else:
+                print(f"[ML] Prediction error: {pred['error']}")
+        else:
+            print("[ML] Model not loaded, skipping prediction")
+            
+    except Exception as e:
+        print(f"[ML] Warning: Prediction failed: {e}")
+        # Don't fail the request if prediction fails
     
     return {"status": "ok"}
+
+
+@app.get("/api/settings")
+async def get_ml_settings(authorization: str | None = Header(None)):
+    """
+    Get current ML settings.
+    """
+    verify_token(authorization)
+    
+    settings = await get_settings()
+    
+    if not settings:
+        # Return defaults
+        return {
+            "retrain_interval_hours": 24,
+            "confidence_threshold": 0.85,
+            "auto_classify": False,
+            "scheduler_enabled": True
+        }
+    
+    return settings
+
+
+@app.put("/api/settings")
+async def update_ml_settings(request: Request, authorization: str | None = Header(None)):
+    """
+    Update ML settings.
+    Automatically reschedules retraining and updates threshold.
+    """
+    verify_token(authorization)
+    
+    try:
+        patch = await request.json()
+        
+        # Update settings in database
+        updated_settings = await update_settings(patch)
+        
+        # Update threshold in model if changed
+        if "confidence_threshold" in patch:
+            from model_wrapper import set_threshold
+            set_threshold(float(patch["confidence_threshold"]))
+        
+        # Reschedule if interval changed
+        if "retrain_interval_hours" in patch or "scheduler_enabled" in patch:
+            from scheduler import reschedule_from_settings
+            await reschedule_from_settings()
+        
+        print(f"[API] Settings updated: {patch}")
+        
+        return {
+            "ok": True,
+            "settings": updated_settings,
+            "message": "Settings updated successfully"
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Failed to update settings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update settings: {str(e)}")
+
+
+@app.post("/ml/reload")
+async def reload_ml_model(request: Request, authorization: str | None = Header(None)):
+    """
+    Manually reload ML model.
+    Optionally specify a version path to load.
+    
+    Body: {"version_path": "models/wazuh-lgbm-20250113-1430.joblib"} (optional)
+    """
+    verify_token(authorization)
+    
+    try:
+        body = await request.json() if request.headers.get("content-length") else {}
+        version_path = body.get("version_path")
+        
+        from model_wrapper import get_model
+        
+        model = get_model()
+        model.reload(version_path)
+        
+        model_info = model.get_info()
+        
+        print(f"[API] Model reloaded: {model_info['version']}")
+        
+        return {
+            "ok": True,
+            "model": model_info,
+            "message": f"Model reloaded: {model_info['version']}"
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Failed to reload model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reload model: {str(e)}")
+
+
+@app.post("/ml/backfill")
+async def trigger_backfill(
+    request: Request,
+    authorization: str | None = Header(None)
+):
+    """
+    Manually trigger backfill of predictions for existing alerts.
+    
+    Body (optional):
+    {
+        "force": true  // Re-predict ALL alerts (even if already predicted)
+    }
+    
+    Default: Only predicts alerts without predictions
+    """
+    verify_token(authorization)
+    
+    try:
+        from backfill import backfill_predictions
+        
+        # Check if force mode requested
+        body = {}
+        try:
+            body = await request.json()
+        except:
+            pass
+        
+        force = body.get("force", False)
+        
+        print(f"[API] Manual backfill triggered (force={force})...")
+        result = await backfill_predictions(force=force)
+        
+        return {
+            "ok": True,
+            "result": result
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Backfill failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Backfill failed: {str(e)}")
+
+
+@app.post("/ml/train")
+async def trigger_training(authorization: str | None = Header(None)):
+    """
+    Manually trigger model retraining.
+    Trains on data from malicious and safe collections.
+    """
+    verify_token(authorization)
+    
+    try:
+        import asyncio
+        from trainer import train_and_maybe_promote
+        from model_wrapper import get_model
+        from db import get_client
+        
+        print("[API] Manual training triggered...")
+        
+        client = get_client()
+        result = await train_and_maybe_promote(client)
+        
+        # Reload model if promoted
+        if result['promoted']:
+            model = get_model()
+            model.reload()
+            print("[API] ✓ New model loaded")
+            
+            # Optionally run backfill with new model
+            async def run_backfill():
+                from backfill import backfill_predictions
+                await backfill_predictions()
+            
+            asyncio.create_task(run_backfill())
+            print("[API] ✓ Backfill scheduled")
+        
+        return {
+            "ok": True,
+            "result": result
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Training failed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
+
+
+@app.get("/ml/status")
+async def get_ml_status(authorization: str | None = Header(None)):
+    """
+    Get ML system status including model info and scheduler status.
+    """
+    verify_token(authorization)
+    
+    try:
+        from model_wrapper import get_model
+        from scheduler import get_scheduler_status
+        from db import get_collection
+        
+        # Get model info
+        model = get_model()
+        model_info = model.get_info()
+        
+        # Get scheduler status
+        scheduler_status = get_scheduler_status()
+        
+        # Get training data counts
+        malicious_collection = get_collection("malicious")
+        safe_collection = get_collection("safe")
+        alerts_collection = get_collection("alerts")
+        
+        malicious_count = await malicious_collection.count_documents({})
+        safe_count = await safe_collection.count_documents({})
+        
+        # Count predicted vs unpredicted alerts
+        total_alerts = await alerts_collection.count_documents({})
+        predicted_alerts = await alerts_collection.count_documents({
+            "predicted_label": {"$exists": True}
+        })
+        
+        return {
+            "ok": True,
+            "model": model_info,
+            "scheduler": scheduler_status,
+            "training_data": {
+                "malicious": malicious_count,
+                "safe": safe_count,
+                "total": malicious_count + safe_count
+            },
+            "predictions": {
+                "total_alerts": total_alerts,
+                "predicted": predicted_alerts,
+                "pending": total_alerts - predicted_alerts
+            }
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Failed to get ML status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get ML status: {str(e)}")
+
+
+@app.get("/ml/evaluate")
+async def evaluate_model(authorization: str | None = Header(None)):
+    """
+    Evaluate current ML model on labeled data from MongoDB.
+    Returns real accuracy, precision, recall, F1 score.
+    
+    Compares:
+    - Model predictions (predicted_label)
+    - Human labels (label field)
+    
+    Only evaluates alerts that have BOTH predicted_label AND label fields.
+    """
+    verify_token(authorization)
+    
+    try:
+        from db import get_collection
+        from sklearn.metrics import (
+            accuracy_score, precision_score, recall_score, 
+            f1_score, confusion_matrix, classification_report
+        )
+        
+        alerts_collection = get_collection("alerts")
+        
+        # Find alerts that have BOTH predictions AND human labels
+        cursor = alerts_collection.find({
+            "predicted_label": {"$exists": True},
+            "label": {"$exists": True}
+        })
+        
+        y_true = []  # Human labels
+        y_pred = []  # Model predictions
+        alert_details = []
+        
+        async for alert in cursor:
+            # Get human label
+            human_label = alert.get("label")  # "malicious" or "safe"
+            
+            # Get model prediction
+            pred_label = alert.get("predicted_label")  # "malicious" or "benign"
+            pred_score = alert.get("predicted_score", 0.0)
+            
+            # Normalize labels to binary (1=malicious, 0=safe/benign)
+            human_binary = 1 if human_label == "malicious" else 0
+            pred_binary = 1 if pred_label == "malicious" else 0
+            
+            y_true.append(human_binary)
+            y_pred.append(pred_binary)
+            
+            # Track individual alert for detailed view
+            alert_details.append({
+                "id": alert.get("_id"),
+                "timestamp": alert.get("timestamp"),
+                "agent": alert.get("agent", {}).get("name", "unknown"),
+                "human_label": human_label,
+                "predicted_label": pred_label,
+                "predicted_score": pred_score,
+                "correct": human_binary == pred_binary
+            })
+        
+        if len(y_true) == 0:
+            return {
+                "ok": True,
+                "evaluated": 0,
+                "message": "No alerts with both predictions and human labels found",
+                "metrics": None
+            }
+        
+        # Calculate metrics
+        accuracy = float(accuracy_score(y_true, y_pred))
+        
+        # Handle edge case: only one class present
+        try:
+            precision = float(precision_score(y_true, y_pred, zero_division=0))
+            recall = float(recall_score(y_true, y_pred, zero_division=0))
+            f1 = float(f1_score(y_true, y_pred, zero_division=0))
+        except:
+            precision = recall = f1 = 0.0
+        
+        # Confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        
+        # Count correct/incorrect
+        correct_count = sum(1 for t, p in zip(y_true, y_pred) if t == p)
+        incorrect_count = len(y_true) - correct_count
+        
+        # Breakdown by class
+        malicious_correct = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
+        malicious_incorrect = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 0)
+        safe_correct = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 0)
+        safe_incorrect = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 1)
+        
+        metrics = {
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
+            "total_evaluated": len(y_true),
+            "correct": correct_count,
+            "incorrect": incorrect_count,
+            "confusion_matrix": {
+                "true_negatives": int(cm[0][0]) if cm.shape[0] > 0 else 0,
+                "false_positives": int(cm[0][1]) if cm.shape[0] > 1 else 0,
+                "false_negatives": int(cm[1][0]) if cm.shape[0] > 1 else 0,
+                "true_positives": int(cm[1][1]) if cm.shape[0] > 1 else 0
+            },
+            "by_class": {
+                "malicious": {
+                    "correct": malicious_correct,
+                    "incorrect": malicious_incorrect,
+                    "total": malicious_correct + malicious_incorrect
+                },
+                "safe": {
+                    "correct": safe_correct,
+                    "incorrect": safe_incorrect,
+                    "total": safe_correct + safe_incorrect
+                }
+            }
+        }
+        
+        # Sort misclassified alerts (most confident mistakes first)
+        misclassified = [a for a in alert_details if not a["correct"]]
+        misclassified.sort(key=lambda x: abs(x["predicted_score"] - 0.5), reverse=True)
+        
+        print(f"[ML EVAL] Evaluated {len(y_true)} alerts: Accuracy={accuracy:.3f}, F1={f1:.3f}")
+        
+        return {
+            "ok": True,
+            "evaluated": len(y_true),
+            "metrics": metrics,
+            "misclassified_samples": misclassified[:10],  # Top 10 mistakes
+            "message": f"Evaluated {len(y_true)} alerts with both predictions and labels"
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Failed to evaluate model: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate model: {str(e)}")
 
 
 if __name__ == "__main__":
