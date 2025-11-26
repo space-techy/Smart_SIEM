@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Alert } from '../types';
 import { api } from '../services/api';
 
@@ -46,8 +46,10 @@ export function Alerts() {
           id: alert._id || alert.id,
           severity: alert.rule?.level >= 7 ? 'High' : alert.rule?.level >= 5 ? 'Moderate' : 'Low',
           title: alert.rule?.description || 'Security Alert',
-          description: `${alert.agent?.name || 'Unknown'}: ${alert.full_log?.substring(0, 100) || 'No details'}`,
+          description: alert.rule?.description || alert.full_log?.substring(0, 150) || 'No details',
+          fullDescription: alert.full_log || '',
           timestamp: alert.timestamp || alert.timestamp_raw || new Date().toISOString(),
+          agentName: alert.agent?.name || alert.predecoder?.hostname || 'Unknown',
           logId: alert._id,
           acknowledged: false,
           // Map label from backend
@@ -89,90 +91,112 @@ export function Alerts() {
   };
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-full mx-auto p-4 md:p-6 space-y-6">
+        {/* Header */}
+        <div className="border-b pb-4">
+          <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Security Alerts</h1>
-          <p className="text-muted-foreground">Monitor and manage security alerts</p>
+              <h1 className="text-2xl font-semibold">Security Alerts</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Monitor and manage security alerts
+              </p>
+            </div>
+            <Button 
+              onClick={loadAlerts} 
+              disabled={loading}
+              variant="outline"
+              size="default"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Data
+            </Button>
+          </div>
         </div>
-        <Button onClick={loadAlerts} disabled={loading} variant="outline" size="sm">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+
+        {/* Alert Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-b pb-6">
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Total Active</h3>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{alertCounts.Total}</div>
+            <p className="text-xs text-gray-600 mt-1">Active alerts</p>
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">High Severity</h3>
+              <AlertTriangle className="w-5 h-5" />
+        </div>
+            <div className="text-2xl font-semibold">{alertCounts.High}</div>
+            <p className="text-xs text-gray-600 mt-1">Critical threats</p>
       </div>
 
-      {/* Alert Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Active</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alertCounts.Total}</div>
-            <p className="text-xs text-muted-foreground">Alerts</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Severity</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alertCounts.High}</div>
-            <p className="text-xs text-muted-foreground">Critical</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Moderate</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alertCounts.Moderate}</div>
-            <p className="text-xs text-muted-foreground">Warning</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Severity</CardTitle>
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alertCounts.Low}</div>
-            <p className="text-xs text-muted-foreground">Info</p>
-          </CardContent>
-        </Card>
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Moderate</h3>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{alertCounts.Moderate}</div>
+            <p className="text-xs text-gray-600 mt-1">Warning level</p>
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Low Severity</h3>
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{alertCounts.Low}</div>
+            <p className="text-xs text-gray-600 mt-1">Info level</p>
+          </div>
       </div>
 
       {/* Active Alerts */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Active Alerts ({activeAlerts.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="border overflow-hidden">
+          <div className="border-b p-4 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Active Alerts</h3>
+              <span className="text-sm text-gray-600">
+                {activeAlerts.length} {activeAlerts.length === 1 ? 'alert' : 'alerts'}
+              </span>
+            </div>
+          </div>
+          <div className="w-full">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading...</span>
+            <div className="flex flex-col items-center justify-center py-16">
+              <RefreshCw className="w-6 h-6 animate-spin mb-2" />
+              <span className="text-sm text-gray-600">Loading alerts...</span>
             </div>
           ) : activeAlerts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-              <p className="text-sm">No active alerts</p>
+            <div className="text-center py-16">
+              <CheckCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm font-medium mb-1">No active alerts</p>
+              <p className="text-xs text-gray-600">Your system is secure</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b-2">
-                    <TableHead className="py-4 font-medium">Severity</TableHead>
-                    <TableHead className="py-4 font-medium">Alert</TableHead>
-                    <TableHead className="py-4 font-medium">Description</TableHead>
-                    <TableHead className="py-4 font-medium">Timestamp</TableHead>
-                    <TableHead className="py-4 font-medium">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <div className="w-full">
+              <div className="overflow-x-auto">
+                <Table className="w-full">
+                  <colgroup>
+                    <col className="w-[90px]" />
+                    <col className="w-[200px]" />
+                    <col className="w-auto" />
+                    <col className="w-[110px]" />
+                    <col className="w-[130px]" />
+                    <col className="w-[200px]" />
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow className="border-b">
+                      <TableHead className="font-medium whitespace-nowrap">Severity</TableHead>
+                      <TableHead className="font-medium">Alert Title</TableHead>
+                      <TableHead className="font-medium">Description</TableHead>
+                      <TableHead className="font-medium whitespace-nowrap">Source</TableHead>
+                      <TableHead className="font-medium whitespace-nowrap">Timestamp</TableHead>
+                      <TableHead className="font-medium text-right whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {activeAlerts
                     .sort((a, b) => {
@@ -181,108 +205,151 @@ export function Alerts() {
                              severityOrder[a.severity as keyof typeof severityOrder];
                     })
                     .map((alert) => (
-                    <TableRow key={alert.id} className={`
-                      hover:bg-muted/30 transition-colors
-                      ${alert.severity === 'High' ? 'border-l-4 border-l-red-500' :
-                        alert.severity === 'Moderate' ? 'border-l-4 border-l-orange-500' :
-                        'border-l-4 border-l-green-500'}
-                    `}>
-                      <TableCell className="py-5">
-                        <Badge className={getSeverityColor(alert.severity) + " px-3 py-1.5"}>
-                          <div className="flex items-center gap-2">
+                    <TableRow key={alert.id} className="border-b hover:bg-gray-50">
+                      <TableCell className="py-4 align-top">
+                        <Badge className={getSeverityColor(alert.severity)}>
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
                             {getSeverityIcon(alert.severity)}
-                            {alert.severity}
+                            <span className="text-xs font-semibold">{alert.severity}</span>
                           </div>
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium py-5">{alert.title}</TableCell>
-                      <TableCell className="max-w-md py-5">
-                        <div className="break-words">{alert.description}</div>
+                      <TableCell className="py-4 align-top">
+                        <div className="font-medium text-sm line-clamp-2">{alert.title}</div>
                       </TableCell>
-                      <TableCell className="font-mono py-5">{alert.timestamp}</TableCell>
-                      <TableCell className="py-5">
-                        <div className="flex flex-col gap-2 min-w-[200px]">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-3"
-                              onClick={() => handleAcknowledge(alert.id)}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Acknowledge
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 border-red-200 hover:bg-red-50 h-8 px-3"
-                              onClick={() => handleIgnore(alert.id)}
-                            >
-                              <XCircle className="w-3 h-3 mr-1" />
-                              Ignore
-                            </Button>
-                          </div>
+                      <TableCell className="py-4 align-top">
+                        <div className="text-sm text-gray-700 line-clamp-2" title={alert.description}>
+                          {alert.description}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-top">
+                        <div className="text-xs text-gray-600 truncate" title={alert.agentName || 'Unknown'}>
+                          {alert.agentName || 'Unknown'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-top">
+                        <div className="font-mono text-xs text-gray-600 whitespace-nowrap">
+                          {new Date(alert.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 align-top">
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
                           <Button
                             size="sm"
-                            variant="ghost"
-                            className="h-8 px-3 w-full justify-start"
-                            onClick={() => window.open(`#/dashboard?log=${alert.logId}`, '_blank')}
+                            variant="outline"
+                            className="h-7 text-xs px-2"
+                            onClick={() => handleAcknowledge(alert.id)}
+                            title="Acknowledge alert"
                           >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            View Log
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            <span className="hidden sm:inline">Ack</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs px-2"
+                            onClick={() => handleIgnore(alert.id)}
+                            title="Ignore alert"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            <span className="hidden sm:inline">Ignore</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs px-2"
+                            onClick={() => window.open(`#/dashboard?log=${alert.logId}`, '_blank')}
+                            title="View log details"
+                          >
+                            <ExternalLink className="w-3 h-3" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
+            </div>
+          </div>
 
       {/* Acknowledged Alerts */}
       {acknowledgedAlerts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Acknowledged Alerts ({acknowledgedAlerts.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="border overflow-hidden">
+          <div className="border-b p-4 bg-gray-50">
+            <h3 className="text-sm font-semibold">Acknowledged Alerts ({acknowledgedAlerts.length})</h3>
+          </div>
+          <div className="w-full">
             <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Severity</TableHead>
-                  <TableHead>Alert</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
+              <Table className="w-full">
+                <colgroup>
+                  <col className="w-[90px]" />
+                  <col className="w-[200px]" />
+                  <col className="w-auto" />
+                  <col className="w-[110px]" />
+                  <col className="w-[130px]" />
+                  <col className="w-[120px]" />
+                </colgroup>
+                <TableHeader>
+                  <TableRow className="border-b">
+                    <TableHead className="font-medium whitespace-nowrap">Severity</TableHead>
+                    <TableHead className="font-medium">Alert Title</TableHead>
+                    <TableHead className="font-medium">Description</TableHead>
+                    <TableHead className="font-medium whitespace-nowrap">Source</TableHead>
+                    <TableHead className="font-medium whitespace-nowrap">Timestamp</TableHead>
+                    <TableHead className="font-medium whitespace-nowrap">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {acknowledgedAlerts.map((alert) => (
-                  <TableRow key={alert.id} className="opacity-60">
-                    <TableCell>
+                  <TableRow key={alert.id} className="border-b opacity-60">
+                    <TableCell className="py-4 align-top">
                       <Badge className={getSeverityColor(alert.severity)} variant="outline">
                         {alert.severity}
                       </Badge>
                     </TableCell>
-                        <TableCell className="font-medium">{alert.title}</TableCell>
-                    <TableCell className="max-w-md">{alert.description}</TableCell>
-                        <TableCell className="font-mono text-xs">{alert.timestamp}</TableCell>
-                    <TableCell>
-                          <Badge variant="secondary">Acknowledged</Badge>
+                    <TableCell className="py-4 align-top">
+                      <div className="font-medium text-sm line-clamp-2">{alert.title}</div>
+                    </TableCell>
+                    <TableCell className="py-4 align-top">
+                      <div className="text-sm text-gray-700 line-clamp-2" title={alert.description}>
+                        {alert.description}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 align-top">
+                      <div className="text-xs text-gray-600 truncate" title={alert.agentName || 'Unknown'}>
+                        {alert.agentName || 'Unknown'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 align-top">
+                      <div className="font-mono text-xs text-gray-600 whitespace-nowrap">
+                        {new Date(alert.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 align-top">
+                      <Badge variant="secondary" className="text-xs">Acknowledged</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Eye, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Search, Filter, Eye, AlertTriangle, CheckCircle, XCircle, RefreshCw, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -43,6 +43,11 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
   const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [mlScoreSort, setMlScoreSort] = useState<string>('none'); // 'none', 'high-to-low', 'low-to-high'
+  const [timestampSort, setTimestampSort] = useState<string>('newest'); // 'none', 'newest', 'oldest'
+  const [levelSort, setLevelSort] = useState<string>('none'); // 'none', 'high-to-low', 'low-to-high'
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   // Fetch alerts from backend
@@ -81,17 +86,53 @@ export function Dashboard() {
     }
   };
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesSearch = log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.sourceIp.includes(searchTerm) ||
+  const filteredAndSortedLogs = useMemo(() => {
+    // First, filter the logs
+    let filtered = logs.filter(log => {
+      const matchesSearch = searchTerm === '' || 
+                           log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           log.sourceIp.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            log.hostname.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesThreat = threatFilter === 'all' || log.threatLevel === threatFilter;
       const matchesType = logTypeFilter === 'all' || log.logType === logTypeFilter;
+      const matchesSource = sourceFilter === 'all' || 
+                           log.sourceIp === sourceFilter || 
+                           log.hostname === sourceFilter ||
+                           `${log.sourceIp} (${log.hostname})` === sourceFilter;
       
-      return matchesSearch && matchesThreat && matchesType;
+      return matchesSearch && matchesThreat && matchesType && matchesSource;
     });
-  }, [logs, searchTerm, threatFilter, logTypeFilter]);
+
+    // Then, sort the filtered logs - apply all sorts in priority order
+    let sorted = [...filtered];
+
+    // Multi-level sorting: apply all sorts together
+    sorted.sort((a, b) => {
+      // Priority 1: Sort by Level (if enabled)
+      if (levelSort !== 'none') {
+        const levelOrder = { 'High': 3, 'Moderate': 2, 'Low': 1 };
+        const aLevel = levelOrder[a.threatLevel as keyof typeof levelOrder] || 0;
+        const bLevel = levelOrder[b.threatLevel as keyof typeof levelOrder] || 0;
+        const levelDiff = levelSort === 'high-to-low' ? bLevel - aLevel : aLevel - bLevel;
+        if (levelDiff !== 0) return levelDiff;
+      }
+
+      // Priority 2: Sort by ML Score (if enabled)
+      if (mlScoreSort !== 'none') {
+        const scoreA = a.mlScore ? parseFloat(a.mlScore) : (mlScoreSort === 'high-to-low' ? -1 : 999);
+        const scoreB = b.mlScore ? parseFloat(b.mlScore) : (mlScoreSort === 'high-to-low' ? -1 : 999);
+        const scoreDiff = mlScoreSort === 'high-to-low' ? scoreB - scoreA : scoreA - scoreB;
+        if (scoreDiff !== 0) return scoreDiff;
+      }
+
+      // Priority 3: Sort by Timestamp (always applied as tiebreaker)
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+      return timestampSort === 'oldest' ? timeA - timeB : timeB - timeA;
+    });
+
+    return sorted;
+  }, [logs, searchTerm, threatFilter, logTypeFilter, sourceFilter, mlScoreSort, timestampSort, levelSort]);
 
   const handleClassification = async (logId: string, classification: 'Malicious' | 'Non-Malicious') => {
     const label = classification === 'Malicious' ? 'malicious' : 'safe';
@@ -127,7 +168,47 @@ export function Dashboard() {
     }
   };
 
-  const logTypes = [...new Set(logs.map(log => log.logType))];
+  const logTypes = useMemo(() => [...new Set(logs.map(log => log.logType))].sort(), [logs]);
+  const allSources = useMemo(() => {
+    const sources = new Set<string>();
+    logs.forEach(log => {
+      if (log.sourceIp && log.sourceIp !== '-') {
+        sources.add(log.sourceIp);
+      }
+      if (log.hostname && log.hostname !== '-') {
+        sources.add(log.hostname);
+      }
+      // Also add combined format
+      if (log.sourceIp && log.sourceIp !== '-' && log.hostname && log.hostname !== '-') {
+        sources.add(`${log.sourceIp} (${log.hostname})`);
+      }
+    });
+    return Array.from(sources).sort();
+  }, [logs]);
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setThreatFilter('all');
+    setLogTypeFilter('all');
+    setSourceFilter('all');
+    setMlScoreSort('none');
+    setTimestampSort('newest');
+    setLevelSort('none');
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm !== '') count++;
+    if (threatFilter !== 'all') count++;
+    if (logTypeFilter !== 'all') count++;
+    if (sourceFilter !== 'all') count++;
+    if (mlScoreSort !== 'none') count++;
+    if (timestampSort !== 'newest') count++;
+    if (levelSort !== 'none') count++;
+    return count;
+  }, [searchTerm, threatFilter, logTypeFilter, sourceFilter, mlScoreSort, timestampSort, levelSort]);
+
+  const hasActiveFilters = activeFilterCount > 0;
 
   const threatCounts = {
     High: logs.filter(log => log.threatLevel === 'High').length,
@@ -136,159 +217,287 @@ export function Dashboard() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="border-b pb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Security Dashboard</h1>
-          <p className="text-muted-foreground">Monitor and analyze security logs with ML-powered threat detection</p>
+              <h1 className="text-2xl font-semibold">Security Dashboard</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Real-time threat monitoring and analysis
+              </p>
+            </div>
+            <Button 
+              onClick={loadAlerts} 
+              disabled={loading} 
+              variant="outline"
+              size="default"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Data
+            </Button>
+          </div>
         </div>
-        <Button onClick={loadAlerts} disabled={loading} variant="outline" size="sm">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+
+        {/* Threat Level Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b pb-6">
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">High Threats</h3>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{threatCounts.High}</div>
+            <p className="text-xs text-gray-600 mt-1">Requires immediate attention</p>
       </div>
 
-      {/* Threat Level Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Threats</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{threatCounts.High}</div>
-            <p className="text-xs text-muted-foreground">Requires immediate attention</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Moderate Threats</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{threatCounts.Moderate}</div>
-            <p className="text-xs text-muted-foreground">Monitor closely</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Threats</CardTitle>
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{threatCounts.Low}</div>
-            <p className="text-xs text-muted-foreground">Routine monitoring</p>
-          </CardContent>
-        </Card>
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Moderate Threats</h3>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{threatCounts.Moderate}</div>
+            <p className="text-xs text-gray-600 mt-1">Monitor closely</p>
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Low Threats</h3>
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{threatCounts.Low}</div>
+            <p className="text-xs text-gray-600 mt-1">Routine monitoring</p>
+          </div>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Filters & Search</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search logs..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+      {/* Filters Toggle Button and Quick Search */}
+        <div className="flex items-center gap-3 border-b pb-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Quick search by description, IP, or hostname..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="relative"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-2 bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+              className="text-xs"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
+
+      {/* Collapsible Filters Panel */}
+        {showFilters && (
+          <div className="border p-4 bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Threat Level</label>
+                <Select value={threatFilter} onValueChange={setThreatFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Moderate">Moderate</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Log Type</label>
+                <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {logTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Source IP / Hostname</label>
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Sources" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {allSources.slice(0, 100).map(source => (
+                      <SelectItem key={source} value={source}>{source}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Sort by Level</label>
+                <Select value={levelSort} onValueChange={setLevelSort}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Sort</SelectItem>
+                    <SelectItem value="high-to-low">High → Low</SelectItem>
+                    <SelectItem value="low-to-high">Low → High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Sort by ML Score</label>
+                <Select value={mlScoreSort} onValueChange={setMlScoreSort}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Sort</SelectItem>
+                    <SelectItem value="high-to-low">High to Low (10 → 0)</SelectItem>
+                    <SelectItem value="low-to-high">Low to High (0 → 10)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block font-medium">Sort by Timestamp</label>
+                <Select value={timestampSort} onValueChange={setTimestampSort}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Newest First" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <Select value={threatFilter} onValueChange={setThreatFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Threat Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Threats</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Moderate">Moderate</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Log Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {logTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
       {/* Logs Table */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Security Logs ({filteredLogs.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="border">
+          <div className="border-b p-4 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Security Logs</h3>
+              <span className="text-sm text-gray-600">
+                {filteredAndSortedLogs.length} {filteredAndSortedLogs.length === 1 ? 'log' : 'logs'}
+                {hasActiveFilters && ` (filtered from ${logs.length} total)`}
+              </span>
+            </div>
+          </div>
+          <div>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading...</span>
+            <div className="flex flex-col items-center justify-center py-16">
+              <RefreshCw className="w-6 h-6 animate-spin mb-2" />
+              <span className="text-sm text-gray-600">Loading security logs...</span>
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-orange-500 opacity-50" />
-              <p className="text-sm">No alerts found</p>
+            <div className="text-center py-16">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm font-medium mb-1">No alerts found</p>
+              <p className="text-xs text-gray-600">Send alerts to the backend to see them here</p>
             </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm mb-4">No matching alerts</p>
+          ) : filteredAndSortedLogs.length === 0 ? (
+            <div className="text-center py-16">
+              <Search className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm font-medium mb-1">No matching alerts</p>
+              <p className="text-xs text-gray-600 mb-4">Try adjusting your filters</p>
               <Button 
-                onClick={() => {
-                  setSearchTerm('');
-                  setThreatFilter('all');
-                  setLogTypeFilter('all');
-                }}
+                onClick={clearAllFilters}
                 variant="outline"
                 size="sm"
               >
-                Clear Filters
+                <X className="w-3 h-3 mr-1" />
+                Clear All Filters
               </Button>
             </div>
           ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>ML Score</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Classification</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="border-b">
+                  <TableHead className="font-medium">
+                    <div className="flex items-center gap-1">
+                      Timestamp
+                      {timestampSort === 'newest' && <ArrowDown className="w-3 h-3" />}
+                      {timestampSort === 'oldest' && <ArrowUp className="w-3 h-3" />}
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-medium">Source</TableHead>
+                  <TableHead className="font-medium">Type</TableHead>
+                  <TableHead className="font-medium">
+                    <div className="flex items-center gap-1">
+                      Level
+                      {levelSort === 'high-to-low' && <ArrowDown className="w-3 h-3" />}
+                      {levelSort === 'low-to-high' && <ArrowUp className="w-3 h-3" />}
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-medium">
+                    <div className="flex items-center gap-1">
+                      ML Score
+                      {mlScoreSort === 'high-to-low' && <ArrowDown className="w-3 h-3" />}
+                      {mlScoreSort === 'low-to-high' && <ArrowUp className="w-3 h-3" />}
+                    </div>
+                  </TableHead>
+                  <TableHead className="font-medium">Description</TableHead>
+                  <TableHead className="font-medium">Classification</TableHead>
+                  <TableHead className="font-medium text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLogs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-muted/20">
-                    <TableCell className="font-mono text-xs">{log.timestamp}</TableCell>
-                    <TableCell className="py-4">
-                      <div className="space-y-1">
-                        <div className="font-medium">{log.sourceIp}</div>
-                        <div className="text-sm text-muted-foreground">{log.hostname}</div>
+                {filteredAndSortedLogs.map((log) => (
+                  <TableRow 
+                    key={log.id} 
+                    className="border-b"
+                  >
+                    <TableCell className="font-mono text-xs text-gray-600">
+                      {new Date(log.timestamp).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <div className="text-sm">{log.sourceIp}</div>
+                        <div className="text-xs text-gray-600">{log.hostname}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-xs">{log.logType}</span>
+                      <span className="text-xs font-mono">{log.logType}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getThreatLevelColor(log.threatLevel)} variant="outline">
-                        {log.threatLevel}
+                      <Badge className={getThreatLevelColor(log.threatLevel)}>
+                          {log.threatLevel}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -298,87 +507,81 @@ export function Dashboard() {
                             {log.mlScore}
                           </Badge>
                           {log.mlLabel && (
-                            <span className="text-xs text-muted-foreground capitalize">
+                            <span className="text-xs text-gray-600 capitalize">
                               {log.mlLabel}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">Pending</span>
+                        <span className="text-xs text-gray-500">Pending</span>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate" title={log.description}>
-                      {log.description}
+                    <TableCell className="max-w-md">
+                      <div className="truncate text-sm" title={log.description}>
+                        {log.description}
+                      </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell>
                       {log.classification ? (
-                        <div className="flex flex-col gap-2 min-w-[160px]">
+                        <div className="flex flex-col gap-2 min-w-[140px]">
                           <Badge 
-                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'} 
-                            className="px-3 py-2 justify-center"
+                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'}
+                            className="text-xs"
                           >
                             {log.classification === 'Malicious' ? (
-                              <><XCircle className="w-3 h-3 mr-1" /> Marked as Malicious</>
+                              <><XCircle className="w-3 h-3 mr-1" /> Malicious</>
                             ) : (
-                              <><CheckCircle className="w-3 h-3 mr-1" /> Marked as Safe</>
+                              <><CheckCircle className="w-3 h-3 mr-1" /> Safe</>
                             )}
-                          </Badge>
+                        </Badge>
                           <Button
                             size="sm"
                             variant="outline"
-                            className={
-                              log.classification === 'Malicious' 
-                                ? "text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 h-9 font-medium transition-all"
-                                : "text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-9 font-medium transition-all"
-                            }
+                            className="h-8 text-xs"
                             onClick={() => handleClassification(
                               log.id, 
                               log.classification === 'Malicious' ? 'Non-Malicious' : 'Malicious'
                             )}
                             disabled={log.classifying}
                           >
-                            {log.classification === 'Malicious' ? (
-                              <><CheckCircle className="w-3.5 h-3.5 mr-2" /> Change to Safe</>
-                            ) : (
-                              <><XCircle className="w-3.5 h-3.5 mr-2" /> Change to Malicious</>
-                            )}
+                            {log.classification === 'Malicious' ? 'Change to Safe' : 'Change to Malicious'}
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2 min-w-[180px]">
+                        <div className="flex flex-col gap-2 min-w-[140px]">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-9 font-medium transition-all"
+                            className="h-8 text-xs"
                             onClick={() => handleClassification(log.id, 'Malicious')}
                             disabled={log.classifying}
                           >
-                            <XCircle className="w-3.5 h-3.5 mr-2" />
+                            <XCircle className="w-3 h-3 mr-1" />
                             Mark Malicious
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 h-9 font-medium transition-all"
+                            className="h-8 text-xs"
                             onClick={() => handleClassification(log.id, 'Non-Malicious')}
                             disabled={log.classifying}
                           >
-                            <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                            <CheckCircle className="w-3 h-3 mr-1" />
                             Mark Safe
                           </Button>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="py-4 text-center">
+                    <TableCell className="text-center">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9 px-3"
+                            className="h-8 text-xs"
                             onClick={() => setSelectedLog(log)}
                           >
-                            <Eye className="w-4 h-4 mr-1.5" />
+                            <Eye className="w-3 h-3 mr-1" />
                             View
                           </Button>
                         </DialogTrigger>
@@ -437,8 +640,9 @@ export function Dashboard() {
           </Table>
           </div>
           )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

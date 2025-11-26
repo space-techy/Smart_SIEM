@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { LogEntry, MLFeedback } from '../types';
 import { api } from '../services/api';
 
@@ -171,204 +171,267 @@ export function MLFeedback() {
   const accuracy = mlMetrics?.metrics?.accuracy || (correctClassifications / (correctClassifications + incorrectClassifications || 1));
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="border-b pb-4">
+          <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ML Model Feedback</h1>
-          <p className="text-muted-foreground">Review ML classifications</p>
+              <h1 className="text-2xl font-semibold">ML Model Feedback</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Review and improve ML classifications with human feedback
+              </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={loadAlerts} disabled={loading} variant="outline" size="sm">
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={loadAlerts} 
+                disabled={loading}
+                variant="outline"
+                size="default"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
           {hasUnsavedChanges && (
             <>
-              <Button variant="outline" onClick={handleResetFeedback} size="sm">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleResetFeedback}
+                  >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
-              <Button onClick={handleSaveFeedback} size="sm">
+                  <Button 
+                    onClick={handleSaveFeedback}
+                    variant="outline"
+                  >
                 <Save className="w-4 h-4 mr-2" />
-                Save ({feedback.length})
+                    Save ({feedback.length})
               </Button>
             </>
           )}
+            </div>
         </div>
       </div>
 
       {/* Model Performance Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accuracy</CardTitle>
-            <CheckCircle className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-b pb-6">
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Accuracy</h3>
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">
               {loadingMetrics ? '...' : `${(accuracy * 100).toFixed(1)}%`}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {mlMetrics ? 'From MongoDB' : 'UI only'}
+            <p className="text-xs text-gray-600 mt-1">
+              {mlMetrics ? '✓ Real ML performance' : 'UI state only'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Correct</CardTitle>
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{correctClassifications}</div>
-            <p className="text-xs text-muted-foreground">Predictions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Incorrect</CardTitle>
-            <XCircle className="w-4 h-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{incorrectClassifications}</div>
-            <p className="text-xs text-muted-foreground">
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Correct</h3>
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{correctClassifications}</div>
+            <p className="text-xs text-gray-600 mt-1">Predictions</p>
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Incorrect</h3>
+              <XCircle className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{incorrectClassifications}</div>
+            <p className="text-xs text-gray-600 mt-1">
               {mlMetrics?.metrics?.f1_score ? `F1: ${(mlMetrics.metrics.f1_score * 100).toFixed(0)}%` : 'Errors'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unclassified</CardTitle>
-            <RotateCcw className="w-4 h-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{unclassifiedLogs}</div>
-            <p className="text-xs text-muted-foreground">Pending</p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          
+          <div className="border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Unclassified</h3>
+              <RotateCcw className="w-5 h-5" />
+            </div>
+            <div className="text-2xl font-semibold">{unclassifiedLogs}</div>
+            <p className="text-xs text-gray-600 mt-1">Pending review</p>
+          </div>
+        </div>
 
-      {/* Detailed ML Metrics */}
-      {mlMetrics && mlMetrics.metrics && (
-        <Card className="bg-muted/30">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Model Performance (Evaluated on {mlMetrics.evaluated} alerts)</CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={loadMLMetrics}
-                disabled={loadingMetrics}
-              >
-                <RefreshCw className={`w-3 h-3 ${loadingMetrics ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-6 text-center">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Accuracy</div>
-                <div className="text-2xl font-bold">{(mlMetrics.metrics.accuracy * 100).toFixed(1)}%</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Precision</div>
-                <div className="text-2xl font-bold">{(mlMetrics.metrics.precision * 100).toFixed(1)}%</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Recall</div>
-                <div className="text-2xl font-bold">{(mlMetrics.metrics.recall * 100).toFixed(1)}%</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">F1 Score</div>
-                <div className="text-2xl font-bold">{(mlMetrics.metrics.f1_score * 100).toFixed(1)}%</div>
+        {/* Detailed ML Metrics */}
+        {mlMetrics && mlMetrics.metrics && (
+          <div className="border">
+            <div className="border-b p-4 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Real ML Model Performance</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Evaluated on {mlMetrics.evaluated} alerts with human labels
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={loadMLMetrics}
+                  disabled={loadingMetrics}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingMetrics ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="border p-4">
+                  <div className="text-xs font-medium text-gray-600 uppercase mb-2">Accuracy</div>
+                  <div className="text-2xl font-semibold">
+                    {(mlMetrics.metrics.accuracy * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {mlMetrics.metrics.correct}/{mlMetrics.metrics.total_evaluated} correct
+                  </div>
+                </div>
+                
+                <div className="border p-4">
+                  <div className="text-xs font-medium text-gray-600 uppercase mb-2">Precision</div>
+                  <div className="text-2xl font-semibold">
+                    {(mlMetrics.metrics.precision * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">True positives</div>
+                </div>
+                
+                <div className="border p-4">
+                  <div className="text-xs font-medium text-gray-600 uppercase mb-2">Recall</div>
+                  <div className="text-2xl font-semibold">
+                    {(mlMetrics.metrics.recall * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">Detection rate</div>
+      </div>
+                
+                <div className="border p-4">
+                  <div className="text-xs font-medium text-gray-600 uppercase mb-2">F1 Score</div>
+                  <div className="text-2xl font-semibold">
+                    {(mlMetrics.metrics.f1_score * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">Harmonic mean</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Feedback Queue */}
       {hasUnsavedChanges && (
-        <Card className="bg-orange-50 border-orange-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">Pending Feedback ({feedback.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <div className="border">
+            <div className="border-b p-4 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <Save className="w-5 h-5" />
+                <div>
+                  <h3 className="text-sm font-semibold">Pending Feedback</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {feedback.length} {feedback.length === 1 ? 'correction' : 'corrections'} ready to save
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
               {feedback.map((f, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
-                  <span className="text-sm">Log {f.logId.substring(0, 10)}... : {f.originalClassification} → {f.correctedClassification}</span>
-                  <Badge variant="outline">Pending</Badge>
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full border flex items-center justify-center font-medium text-xs">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <span className="text-sm">Alert {f.logId.substring(0, 12)}...</span>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          {f.originalClassification} → {f.correctedClassification}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      <Clock className="w-3 h-3 mr-1" />
+                    Pending
+                  </Badge>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
       )}
 
       {/* Logs Needing Correction */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Logs Requiring Review ({logsNeedingCorrection.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="border">
+          <div className="border-b p-4 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Logs Requiring Review</h3>
+              <span className="text-sm text-gray-600">
+                {logsNeedingCorrection.length} pending
+              </span>
+            </div>
+          </div>
+          <div>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading...</span>
+              <RefreshCw className="w-6 h-6 animate-spin" />
+              <span className="ml-3 text-sm text-gray-600">Loading...</span>
             </div>
           ) : logsNeedingCorrection.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+            <div className="text-center py-12">
+              <CheckCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
               <p className="text-sm">All logs classified</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-b-2">
-                    <TableHead className="py-4 font-medium">Timestamp</TableHead>
-                    <TableHead className="py-4 font-medium">Source</TableHead>
-                    <TableHead className="py-4 font-medium">ML Score</TableHead>
-                    <TableHead className="py-4 font-medium">ML Prediction</TableHead>
-                    <TableHead className="py-4 font-medium">Description</TableHead>
-                    <TableHead className="py-4 font-medium">Current Status</TableHead>
-                    <TableHead className="py-4 font-medium">Correct Classification</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="font-medium">Timestamp</TableHead>
+                    <TableHead className="font-medium">Source</TableHead>
+                    <TableHead className="font-medium">ML Score</TableHead>
+                    <TableHead className="font-medium">ML Prediction</TableHead>
+                    <TableHead className="font-medium">Description</TableHead>
+                    {/* <TableHead className="font-medium">Current Status</TableHead> */}
+                    <TableHead className="font-medium">Correct Classification</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logsNeedingCorrection.map((log) => (
-                    <TableRow key={log.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-mono py-4">{log.timestamp}</TableCell>
-                      <TableCell className="py-4">
+                    <TableRow key={log.id} className="border-b">
+                      <TableCell className="font-mono text-xs">{log.timestamp}</TableCell>
+                      <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">{log.sourceIp}</div>
-                          <div className="text-sm text-muted-foreground">{log.hostname}</div>
+                          <div className="text-sm">{log.sourceIp}</div>
+                          <div className="text-xs text-gray-600">{log.hostname}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell>
                         {log.mlScore ? (
                           <Badge className={getMLScoreColor(parseFloat(log.mlScore))}>
                             {log.mlScore}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
+                          <span className="text-xs text-gray-500">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-4">
-                        <Badge className={getThreatLevelColor(log.threatLevel) + " px-3 py-1"}>
+                      <TableCell>
+                        <Badge className={getThreatLevelColor(log.threatLevel)}>
                           {log.threatLevel}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-sm py-4">
-                        <div className="truncate" title={log.description}>
+                      <TableCell className="max-w-sm">
+                        <div className="truncate text-sm" title={log.description}>
                           {log.description}
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">
+                      {/* <TableCell>
                         {log.classification ? (
                           <Badge 
-                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'} 
-                            className="px-3 py-1"
+                            variant={log.classification === 'Malicious' ? 'destructive' : 'secondary'}
+                            className="text-xs"
                           >
                             {log.classification === 'Malicious' ? (
                               <><XCircle className="w-3 h-3 mr-1" /> Malicious</>
@@ -377,41 +440,26 @@ export function MLFeedback() {
                             )}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="px-3 py-1">Unclassified</Badge>
+                          <Badge variant="outline" className="text-xs">Unclassified</Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="py-4">
+                      </TableCell> */}
+                      <TableCell>
                         {log.classification ? (
-                        <div className="flex flex-col gap-2 min-w-[160px]">
-                            <Badge 
-                              variant="secondary" 
-                              className="px-3 py-2 justify-center"
-                            >
-                              {log.classification === 'Malicious' ? (
-                                <><XCircle className="w-3 h-3 mr-1" /> Marked as Malicious</>
-                              ) : (
-                                <><CheckCircle className="w-3 h-3 mr-1" /> Marked as Safe</>
-                              )}
+                          <div className="flex flex-col gap-2 min-w-[140px]">
+                            <Badge variant="secondary" className="text-xs">
+                              {log.classification === 'Malicious' ? 'Marked as Malicious' : 'Marked as Safe'}
                             </Badge>
                             <Button
                               size="sm"
                               variant="outline"
-                              className={
-                                log.classification === 'Malicious' 
-                                  ? "text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 h-9 font-medium transition-all"
-                                  : "text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-9 font-medium transition-all"
-                              }
+                              className="h-8 text-xs"
                               onClick={() => handleCorrection(
                                 log.id, 
                                 log.classification === 'Malicious' ? 'Non-Malicious' : 'Malicious'
                               )}
                               disabled={log.classifying}
                             >
-                              {log.classification === 'Malicious' ? (
-                                <><CheckCircle className="w-3.5 h-3.5 mr-2" /> Change to Safe</>
-                              ) : (
-                                <><XCircle className="w-3.5 h-3.5 mr-2" /> Change to Malicious</>
-                              )}
+                              {log.classification === 'Malicious' ? 'Change to Safe' : 'Change to Malicious'}
                             </Button>
                           </div>
                         ) : (
@@ -419,6 +467,7 @@ export function MLFeedback() {
                           <Button
                             size="sm"
                             variant="outline"
+                              className="h-8 text-xs"
                             onClick={() => handleCorrection(log.id, 'Malicious')}
                               disabled={log.classifying}
                           >
@@ -427,6 +476,7 @@ export function MLFeedback() {
                           <Button
                             size="sm"
                             variant="outline"
+                              className="h-8 text-xs"
                             onClick={() => handleCorrection(log.id, 'Non-Malicious')}
                               disabled={log.classifying}
                           >
@@ -441,9 +491,9 @@ export function MLFeedback() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
-
+              </div>
+            </div>
+          </div>
     </div>
   );
 }

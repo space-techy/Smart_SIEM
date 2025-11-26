@@ -113,6 +113,130 @@ export const api = {
       console.error('Health check failed:', error);
       return false;
     }
+  },
+
+  // Get ML settings
+  async getMLSettings() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/settings`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch ML settings:', error);
+      return null;
+    }
+  },
+
+  // Update ML settings
+  async updateMLSettings(settings: any) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(settings)
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to update ML settings:', error);
+      throw error;
+    }
+  },
+
+  // Get ML status
+  async getMLStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ml/status`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch ML status:', error);
+      return null;
+    }
+  },
+
+  // List model versions
+  async listModelVersions(limit = 50) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ml/versions?limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to list model versions:', error);
+      return null;
+    }
+  },
+
+  // Rollback to a model version
+  async rollbackModelVersion(versionId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ml/rollback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({ version_id: versionId })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to rollback model:', error);
+      throw error;
+    }
+  },
+
+  // Trigger manual training
+  async triggerTraining() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ml/train`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to trigger training:', error);
+      throw error;
+    }
   }
 };
 
