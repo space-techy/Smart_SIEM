@@ -81,3 +81,21 @@ def extract_features(alert: Dict[str, Any]) -> Dict[str, Any]:
     
     return features
 
+
+def features_to_dataframe_row(features: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert features dict to DataFrame row format.
+    This ensures all features are in the correct format for training.
+    """
+    return {
+        "agent_name": str(features.get("agent_name", "")),
+        "srcuser": str(features.get("srcuser", "")),
+        "decoder_name": str(features.get("decoder_name", "")),
+        "program_name": str(features.get("program_name", "")),
+        "rule_groups": str(features.get("rule_groups", "")),
+        "rule_level": int(features.get("rule_level", 0)),
+        "hour_of_day": int(features.get("hour_of_day", 0)),
+        "day_of_week": int(features.get("day_of_week", 0)),
+        "success": int(features.get("success", 0))
+    }
+

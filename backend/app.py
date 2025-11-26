@@ -448,11 +448,17 @@ async def get_ml_settings(authorization: str | None = Header(None)):
     if not settings:
         # Return defaults
         return {
-            "retrain_interval_hours": 24,
+            "retrain_interval_value": 24,
+            "retrain_interval_unit": "hours",
             "confidence_threshold": 0.85,
             "auto_classify": False,
             "scheduler_enabled": True
         }
+    
+    # Convert legacy format to new format
+    if "retrain_interval_hours" in settings and "retrain_interval_value" not in settings:
+        settings["retrain_interval_value"] = settings["retrain_interval_hours"]
+        settings["retrain_interval_unit"] = "hours"
     
     return settings
 
@@ -477,7 +483,10 @@ async def update_ml_settings(request: Request, authorization: str | None = Heade
             set_threshold(float(patch["confidence_threshold"]))
         
         # Reschedule if interval changed
-        if "retrain_interval_hours" in patch or "scheduler_enabled" in patch:
+        if ("retrain_interval_value" in patch or 
+            "retrain_interval_unit" in patch or 
+            "retrain_interval_hours" in patch or 
+            "scheduler_enabled" in patch):
             from scheduler import reschedule_from_settings
             await reschedule_from_settings()
         
@@ -615,6 +624,93 @@ async def trigger_training(authorization: str | None = Header(None)):
         raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
 
 
+@app.get("/ml/versions")
+async def list_model_versions(
+    authorization: str | None = Header(None),
+    limit: int = 50
+):
+    """
+    List all model versions with metadata.
+    Returns versions sorted by date (newest first).
+    """
+    verify_token(authorization)
+    
+    try:
+        from model_versioning import list_versions, get_version_file_size
+        
+        versions = list_versions(limit=limit)
+        
+        # Add file size to each version
+        for version in versions:
+            version["file_size_bytes"] = get_version_file_size(version["path"])
+            version["file_size_mb"] = round(version["file_size_bytes"] / (1024 * 1024), 2)
+        
+        return {
+            "ok": True,
+            "versions": versions,
+            "count": len(versions)
+        }
+        
+    except Exception as e:
+        print(f"[API] ERROR: Failed to list versions: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to list versions: {str(e)}")
+
+
+@app.post("/ml/rollback")
+async def rollback_model_version(
+    request: Request,
+    authorization: str | None = Header(None)
+):
+    """
+    Rollback to a previous model version.
+    
+    Body: {"version_id": "20250113-143000"}
+    """
+    verify_token(authorization)
+    
+    try:
+        body = await request.json()
+        version_id = body.get("version_id")
+        
+        if not version_id:
+            raise HTTPException(status_code=400, detail="version_id is required")
+        
+        from model_versioning import promote_version, get_version
+        from model_wrapper import get_model
+        
+        # Check if version exists
+        version = get_version(version_id)
+        if not version:
+            raise HTTPException(status_code=404, detail=f"Version {version_id} not found")
+        
+        # Promote the version
+        success = promote_version(version_id)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to rollback")
+        
+        # Reload model
+        model = get_model()
+        model.reload()
+        
+        print(f"[API] Model rolled back to version {version_id}")
+        
+        return {
+            "ok": True,
+            "version": version,
+            "message": f"Rolled back to version {version_id}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] ERROR: Failed to rollback: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to rollback: {str(e)}")
+
+
 @app.get("/ml/status")
 async def get_ml_status(authorization: str | None = Header(None)):
     """
@@ -634,6 +730,10 @@ async def get_ml_status(authorization: str | None = Header(None)):
         # Get scheduler status
         scheduler_status = get_scheduler_status()
         
+        # Get production version info
+        from model_versioning import get_production_version
+        production_version = get_production_version()
+        
         # Get training data counts
         malicious_collection = get_collection("malicious")
         safe_collection = get_collection("safe")
@@ -651,6 +751,7 @@ async def get_ml_status(authorization: str | None = Header(None)):
         return {
             "ok": True,
             "model": model_info,
+            "production_version": production_version,
             "scheduler": scheduler_status,
             "training_data": {
                 "malicious": malicious_count,

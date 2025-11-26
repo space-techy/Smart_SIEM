@@ -1,0 +1,40 @@
+[
+  {
+    "version_id": "20251126-195908",
+    "filename": "model-20251126-195908.joblib",
+    "path": "models\\versions\\model-20251126-195908.joblib",
+    "metrics": {
+      "accuracy": 0.6,
+      "precision": 0.6,
+      "recall": 1.0,
+      "f1_score": 0.75,
+      "train_samples": 20,
+      "test_samples": 5
+    },
+    "training_samples": 25,
+    "notes": "Automatic retraining",
+    "created_at": "2025-11-26T19:59:08.997870+00:00",
+    "is_production": true,
+    "promoted_at": "2025-11-26T19:59:42.480678+00:00",
+    "promoted_until": "2025-11-26T19:59:09.019540+00:00"
+  },
+  {
+    "version_id": "20251126-195856",
+    "filename": "model-20251126-195856.joblib",
+    "path": "models\\versions\\model-20251126-195856.joblib",
+    "metrics": {
+      "accuracy": 0.6,
+      "precision": 0.6,
+      "recall": 1.0,
+      "f1_score": 0.75,
+      "train_samples": 20,
+      "test_samples": 5
+    },
+    "training_samples": 25,
+    "notes": "Automatic retraining",
+    "created_at": "2025-11-26T19:58:56.970521+00:00",
+    "is_production": false,
+    "promoted_at": "2025-11-26T19:59:30.972041+00:00",
+    "promoted_until": "2025-11-26T19:59:42.480678+00:00"
+  }
+]

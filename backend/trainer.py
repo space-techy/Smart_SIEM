@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 import joblib
 
@@ -90,12 +90,17 @@ def train_model(df: pd.DataFrame) -> Tuple[Pipeline, Dict[str, float]]:
     if label_counts.min() < MIN_SAMPLES_PER_CLASS:
         raise ValueError(f"Need at least {MIN_SAMPLES_PER_CLASS} samples per class")
     
-    # Define features (must match final_model.py exactly)
+    # Define features (must match LightGBM notebook exactly)
+    # Note: notebook uses 'success' but we need to check if it's in the data
     categorical_features = [
         'agent_name', 'srcuser', 'decoder_name', 
-        'program_name', 'rule_groups', 'rule_description'
+        'program_name', 'rule_groups'
     ]
     numerical_features = ['rule_level', 'hour_of_day', 'day_of_week']
+    
+    # Add 'success' if present in data
+    if 'success' in df.columns:
+        numerical_features.append('success')
     
     # Prepare X and y
     X = df[categorical_features + numerical_features]
@@ -119,11 +124,18 @@ def train_model(df: pd.DataFrame) -> Tuple[Pipeline, Dict[str, float]]:
         ]
     )
     
-    # Build full pipeline
-    model = RandomForestClassifier(
+    # Build full pipeline with LightGBM (matching notebook)
+    # Use tuned hyperparameters from notebook
+    model = LGBMClassifier(
         n_estimators=100,
+        learning_rate=0.1,
+        num_leaves=40,
+        max_depth=10,
+        subsample=1.0,
+        colsample_bytree=0.7,
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1,
+        verbose=-1  # Suppress LightGBM output
     )
     
     pipeline = Pipeline(steps=[
@@ -132,7 +144,7 @@ def train_model(df: pd.DataFrame) -> Tuple[Pipeline, Dict[str, float]]:
     ])
     
     # Train
-    print("[TRAINER] Training RandomForest classifier...")
+    print("[TRAINER] Training LightGBM classifier...")
     pipeline.fit(X_train, y_train)
     
     # Evaluate
@@ -157,41 +169,40 @@ def train_model(df: pd.DataFrame) -> Tuple[Pipeline, Dict[str, float]]:
     return pipeline, metrics
 
 
-def save_model_with_version(pipeline: Pipeline, metrics: Dict[str, float]) -> str:
+def save_model_with_version(
+    pipeline: Pipeline, 
+    metrics: Dict[str, float],
+    training_samples: int,
+    notes: str = ""
+) -> Dict[str, Any]:
     """
-    Save model with timestamp version.
-    Returns path to saved model.
+    Save model with versioning system.
+    Returns version metadata dict.
     """
-    # Create models directory if it doesn't exist
-    os.makedirs("models", exist_ok=True)
+    from model_versioning import save_model_version
     
-    # Generate version filename
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    version_filename = f"authclf-{timestamp}.joblib"
-    version_path = os.path.join("models", version_filename)
+    version_metadata = save_model_version(
+        pipeline=pipeline,
+        metrics=metrics,
+        training_samples=training_samples,
+        notes=notes
+    )
     
-    # Save versioned model
-    joblib.dump(pipeline, version_path)
-    print(f"[TRAINER] Saved versioned model: {version_path}")
-    
-    return version_path
+    print(f"[TRAINER] Saved model version: {version_metadata['version_id']}")
+    return version_metadata
 
 
-def promote_to_production(version_path: str) -> None:
+def promote_to_production(version_id: str) -> None:
     """
-    Atomically promote a model version to production (current.joblib).
-    Uses temp file + atomic rename for safety.
+    Promote a model version to production using versioning system.
     """
-    current_path = "models/current.joblib"
-    temp_path = "models/current.joblib.tmp"
+    from model_versioning import promote_version
     
-    # Copy to temp location
-    shutil.copy2(version_path, temp_path)
+    success = promote_version(version_id)
+    if not success:
+        raise ValueError(f"Failed to promote version {version_id}")
     
-    # Atomic rename (overwrites existing current.joblib)
-    os.replace(temp_path, current_path)
-    
-    print(f"[TRAINER] ✓ Promoted to production: {current_path}")
+    print(f"[TRAINER] ✓ Promoted version {version_id} to production")
 
 
 async def train_and_maybe_promote(db) -> Dict[str, Any]:
@@ -222,23 +233,35 @@ async def train_and_maybe_promote(db) -> Dict[str, Any]:
         new_pipeline, new_metrics = train_model(df)
         
         # Save versioned model
-        version_path = save_model_with_version(new_pipeline, new_metrics)
-        version_name = os.path.basename(version_path)
+        version_metadata = save_model_with_version(
+            pipeline=new_pipeline,
+            metrics=new_metrics,
+            training_samples=len(df),
+            notes="Automatic retraining"
+        )
+        version_id = version_metadata["version_id"]
+        version_name = version_metadata["filename"]
         
         # Check if we should promote
         should_promote = True
-        current_path = "models/current.joblib"
+        from model_versioning import get_production_version, CURRENT_MODEL
         
-        if os.path.exists(current_path):
+        production_version = get_production_version()
+        
+        if production_version and os.path.exists(CURRENT_MODEL):
             # Load current model and evaluate on same test set
             try:
                 print("[TRAINER] Comparing with current production model...")
-                current_pipeline = joblib.load(current_path)
+                current_pipeline = joblib.load(CURRENT_MODEL)
                 
-                # Quick evaluation on recent data
-                X = df[['agent_name', 'srcuser', 'decoder_name', 
-                       'program_name', 'rule_groups', 'rule_description',
-                       'rule_level', 'hour_of_day', 'day_of_week']]
+                # Get feature columns (handle missing 'success')
+                feature_cols = ['agent_name', 'srcuser', 'decoder_name', 
+                               'program_name', 'rule_groups',
+                               'rule_level', 'hour_of_day', 'day_of_week']
+                if 'success' in df.columns:
+                    feature_cols.append('success')
+                
+                X = df[feature_cols]
                 y = df['label'].map({'benign': 0, 'malicious': 1})
                 
                 current_pred = current_pipeline.predict(X)
@@ -267,14 +290,15 @@ async def train_and_maybe_promote(db) -> Dict[str, Any]:
         
         # Promote if approved
         if should_promote:
-            promote_to_production(version_path)
+            promote_to_production(version_id)
             
-            # Store metadata in MongoDB
+            # Store metadata in MongoDB (for compatibility)
             from db import get_collection
             models_collection = get_collection("models")
             await models_collection.insert_one({
                 "version": version_name,
-                "path": version_path,
+                "version_id": version_id,
+                "path": version_metadata["path"],
                 "metrics": new_metrics,
                 "is_production": True,
                 "promoted_at": datetime.now(timezone.utc).isoformat(),
@@ -284,13 +308,23 @@ async def train_and_maybe_promote(db) -> Dict[str, Any]:
             return {
                 "promoted": True,
                 "version": version_name,
+                "version_id": version_id,
                 "metrics": new_metrics,
                 "message": f"Model promoted to production (F1: {new_metrics['f1_score']:.4f})"
             }
         else:
+            # Still save version but don't promote
+            from model_versioning import load_all_versions, save_versions_metadata
+            versions = load_all_versions()
+            version = next((v for v in versions if v["version_id"] == version_id), None)
+            if version:
+                version["is_production"] = False
+                save_versions_metadata(versions)
+            
             return {
                 "promoted": False,
                 "version": version_name,
+                "version_id": version_id,
                 "metrics": new_metrics,
                 "message": "Model trained but not promoted (no significant improvement)"
             }
